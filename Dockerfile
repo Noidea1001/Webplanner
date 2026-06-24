@@ -1,21 +1,22 @@
 # ជំហានទី ១: Build កម្មវិធី ASP.NET Core MVC + API
-FROM ://microsoft.com AS build-env
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
 WORKDIR /app
 
 # ចម្លងឯកសារ .csproj រួច Restore dependencies
 COPY *.csproj ./
 RUN dotnet restore
 
-# ចម្លងកូដ និងឯកសារ Views/wwwroot ទាំងអស់ រួច Publish កម្មវិធី
+# ចម្លងកូដទាំងអស់ រួច Publish
 COPY . ./
 RUN dotnet publish -c Release -o out
 
-# ជំហានទី ២: បង្កើត Runtime Image សម្រាប់ដំណើរការ
-FROM ://microsoft.com
+# ជំហានទី ២: Runtime Image
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build-env /app/out .
 
-# កំណត់ឱ្យកម្មវិធីដើរក្នុង Production mode ជានិច្ចលើ Render
+# Environment
 ENV ASPNETCORE_ENVIRONMENT=Production
+EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "WebPlanner.dll"]
