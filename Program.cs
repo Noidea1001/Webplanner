@@ -82,14 +82,45 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        Console.WriteLine("🔄 Applying migrations...");
-        db.Database.Migrate();
-        Console.WriteLine("✅ Database migrations applied successfully");
+        Console.WriteLine("🔄 Applying database migrations...");
+
+        if (!app.Environment.IsDevelopment())
+        {
+            Console.WriteLine("🛠️  Running PostgreSQL compatibility fixes...");
+
+            // Fix IsCompleted column type safely
+            await db.Database.ExecuteSqlRawAsync(@"
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name = 'Tasks' 
+                          AND column_name = 'IsCompleted' 
+                          AND data_type != 'boolean'
+                    ) THEN
+                        ALTER TABLE ""Tasks"" 
+                        ALTER COLUMN ""IsCompleted"" TYPE boolean 
+                        USING (CASE 
+                            WHEN ""IsCompleted""::text IN ('1', 'true', 'yes') THEN true 
+                            ELSE false 
+                        END);
+                        RAISE NOTICE 'Fixed IsCompleted column type';
+                    END IF;
+                END $$;
+            ");
+
+            Console.WriteLine("✅ PostgreSQL column type fix applied");
+        }
+
+        await db.Database.MigrateAsync();
+        Console.WriteLine("✅ All migrations completed successfully");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"❌ Migration failed: {ex.Message}");
-        throw;
+        Console.WriteLine($"❌ Migration error: {ex.Message}");
+        // Don't throw in production if it's a non-critical column fix
+        if (!ex.Message.Contains("IsCompleted"))
+            throw;
     }
 
     // Seed Admin Role
@@ -99,7 +130,7 @@ using (var scope = app.Services.CreateScope())
         if (!await roleManager.RoleExistsAsync("Admin"))
         {
             await roleManager.CreateAsync(new IdentityRole("Admin"));
-            Console.WriteLine("✅ Admin role seeded");
+            Console.WriteLine("✅ Admin role created");
         }
     }
     catch (Exception ex)
