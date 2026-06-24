@@ -1,45 +1,46 @@
-using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore; 
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebPlanner.Data;
 using WebPlanner.Models;
 
-// ... rest of your code
-
 var builder = WebApplication.CreateBuilder(args);
 
-// ==================== RENDER FIXES ====================
+// ==================== RENDER + PRODUCTION FIXES ====================
 builder.WebHost.UseUrls("http://0.0.0.0:8080");
 
-Console.WriteLine($"🚀 Running in: {builder.Environment.EnvironmentName} mode");
+Console.WriteLine($"🚀 Environment: {builder.Environment.EnvironmentName}");
 
-// ==================== DATABASE ====================
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// ==================== DATABASE CONFIG ====================
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                    ?? (builder.Environment.IsDevelopment() ? "Data Source=webplanner.db" : null);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (builder.Environment.IsDevelopment())
     {
-        options.UseSqlite(connectionString ?? "Data Source=webplanner.db");
-        Console.WriteLine("✅ Using SQLite (Development)");
+        options.UseSqlite(connectionString);
+        Console.WriteLine("✅ Using SQLite for Development");
     }
     else
     {
         if (string.IsNullOrEmpty(connectionString))
         {
-            Console.WriteLine("❌ ERROR: No PostgreSQL connection string found!");
-            throw new InvalidOperationException("Missing PostgreSQL connection string on Render!");
+            throw new InvalidOperationException("❌ PostgreSQL connection string is required in Production (Render)!");
         }
-        options.UseNpgsql(connectionString);
-        Console.WriteLine("✅ Using PostgreSQL (Production)");
+        options.UseNpgsql(connectionString, npgsqlOptions =>
+        {
+            npgsqlOptions.EnableRetryOnFailure(3); // Better resilience on Render
+        });
+        Console.WriteLine("✅ Using PostgreSQL for Production");
     }
 
     options.ConfigureWarnings(w => w.Ignore(
         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
-// ==================== IDENTITY ====================
+// ==================== IDENTITY + DATA PROTECTION ====================
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.Password.RequireDigit = false;
@@ -53,70 +54,64 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 
 builder.Services.AddDataProtection()
     .PersistKeysToDbContext<ApplicationDbContext>()
-    .SetApplicationName("WebPlanner");
+    .SetApplicationName("WebPlanner")
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/Login";
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Important for HTTPS
 });
 
-// ==================== MVC ====================
+// ==================== SERVICES ====================
 builder.Services.AddControllersWithViews();
-builder.Services.AddControllers();
+builder.Services.AddRazorPages(); // If using Identity UI
+
+// Swagger (optional)
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ==================== DB SETUP + ERROR HANDLING ====================
+// ==================== DATABASE MIGRATION + SEEDING ====================
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var services = scope.ServiceProvider;
+    var db = services.GetRequiredService<ApplicationDbContext>();
 
     try
     {
-        if (app.Environment.IsDevelopment())
-        {
-            // ណែនាំឱ្យប្រើ Migrate() ដូចគ្នាដើម្បីជៀសវាងបញ្ហា Migration ថ្ងៃក្រោយ
-            db.Database.Migrate();
-            Console.WriteLine("✅ SQLite database and migrations ready");
-        }
-        else
-        {
-            Console.WriteLine("🔄 Applying PostgreSQL migrations...");
-            db.Database.Migrate();
-            Console.WriteLine("✅ PostgreSQL migrations completed successfully");
-        }
+        Console.WriteLine("🔄 Applying migrations...");
+        db.Database.Migrate();
+        Console.WriteLine("✅ Database migrations applied successfully");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"❌ Database Error: {ex.Message}");
-        Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+        Console.WriteLine($"❌ Migration failed: {ex.Message}");
         throw;
     }
 
-   // Create Admin Role
+    // Seed Admin Role
     try
     {
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        
-        if (!roleManager.RoleExistsAsync("Admin").GetAwaiter().GetResult())
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        if (!await roleManager.RoleExistsAsync("Admin"))
         {
-            roleManager.CreateAsync(new IdentityRole("Admin")).GetAwaiter().GetResult();
-            Console.WriteLine("✅ Admin role created");
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
+            Console.WriteLine("✅ Admin role seeded");
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"⚠️ Role creation warning: {ex.Message}");
+        Console.WriteLine($"⚠️ Role seeding warning: {ex.Message}");
     }
-
 }
 
-Console.WriteLine("🚀 Application startup completed successfully");
-
-// ==================== MIDDLEWARE ====================
+// ==================== MIDDLEWARE PIPELINE ====================
 if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -129,6 +124,7 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -136,6 +132,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Tasks}/{action=Index}/{id?}");
 
-app.MapControllers();
+app.MapRazorPages(); // For Identity pages if used
 
+Console.WriteLine("🚀 WebPlanner started successfully on Render!");
 app.Run();
