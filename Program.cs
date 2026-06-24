@@ -5,14 +5,8 @@ using WebPlanner.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ==================== RENDER / PRODUCTION FIXES ====================
+// ==================== RENDER FIXES ====================
 builder.WebHost.UseUrls("http://0.0.0.0:8080");
-
-if (string.IsNullOrEmpty(builder.Environment.EnvironmentName) || 
-    builder.Environment.EnvironmentName == "Production")
-{
-    builder.Environment.EnvironmentName = "Production";
-}
 
 Console.WriteLine($"🚀 Running in: {builder.Environment.EnvironmentName} mode");
 
@@ -28,7 +22,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     else
     {
         if (string.IsNullOrEmpty(connectionString))
-            throw new InvalidOperationException("Missing PostgreSQL connection string on Render!");
+            throw new InvalidOperationException("Missing PostgreSQL connection string!");
 
         options.UseNpgsql(connectionString);
     }
@@ -56,13 +50,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 // ==================== MVC SERVICES ====================
-var mvcBuilder = builder.Services.AddControllersWithViews();
-
-// Only enable runtime compilation in Development (prevents inotify error)
-if (builder.Environment.IsDevelopment())
-{
-    mvcBuilder.AddRazorRuntimeCompilation();
-}
+builder.Services.AddControllersWithViews();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -70,7 +58,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ==================== DB MIGRATION & SEED ====================
+// ==================== DB SETUP ====================
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -84,7 +72,6 @@ using (var scope = app.Services.CreateScope())
         db.Database.Migrate();
     }
 
-    // Seed Admin Role
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     if (!await roleManager.RoleExistsAsync("Admin"))
         await roleManager.CreateAsync(new IdentityRole("Admin"));
