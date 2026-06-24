@@ -1,7 +1,7 @@
 @model CalendarViewModel
 @{
     ViewData["Title"] = "Calendar";
-    ViewData["Subtitle"] = "View deadlines by day, week, month, or year";
+    @* ViewData["Subtitle"] = "View deadlines by day, week, month, or year"; *@
     string FmtDate(DateTime d) => d.ToString("yyyy-MM-dd");
     var today = DateTime.Today;
 }

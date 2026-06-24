@@ -1,7 +1,7 @@
 @model List<TaskItem>
 @{
     ViewData["Title"] = "Board";
-    ViewData["Subtitle"] = "Drag cards to change priority or mark complete";
+    @* ViewData["Subtitle"] = "Drag cards to change priority or mark complete"; *@
 
     var lowTasks = Model.Where(t => !t.IsCompleted && t.Priority == TaskPriority.Low).ToList();
     var mediumTasks = Model.Where(t => !t.IsCompleted && t.Priority == TaskPriority.Medium).ToList();

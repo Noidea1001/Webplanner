@@ -1,7 +1,7 @@
 @model List<TaskItem>
 @{
     ViewData["Title"] = "Tasks";
-    ViewData["Subtitle"] = "Browse and filter everything";
+    @* ViewData["Subtitle"] = "Browse and filter everything"; *@
     var completedCount = Model.Count(t => t.IsCompleted);
     var pendingCount   = Model.Count(t => !t.IsCompleted);
 }
