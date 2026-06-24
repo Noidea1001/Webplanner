@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WebPlanner")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a954d8dc3398ae2386d5bec305bbba90867af5f3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9d581a61d2877d2697856ab42738685eb956ee80")]
 [assembly: System.Reflection.AssemblyProductAttribute("WebPlanner")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WebPlanner")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
