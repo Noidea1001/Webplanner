@@ -84,45 +84,53 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine("🔄 Applying migrations for Neon PostgreSQL...");
 
-        // Special fix for Neon / PostgreSQL type casting issue
         if (!app.Environment.IsDevelopment())
         {
-            Console.WriteLine("🛠️ Applying IsCompleted column fix for Neon...");
+            Console.WriteLine("🛠️  Running PostgreSQL compatibility fixes for Neon...");
 
             await db.Database.ExecuteSqlRawAsync(@"
                 DO $$
                 BEGIN
+                    -- Fix IsCompleted column
                     IF EXISTS (
                         SELECT 1 FROM information_schema.columns 
-                        WHERE table_name = 'Tasks' 
-                          AND column_name = 'IsCompleted' 
-                          AND data_type != 'boolean'
+                        WHERE table_name = 'Tasks' AND column_name = 'IsCompleted' 
+                        AND data_type != 'boolean'
                     ) THEN
                         ALTER TABLE ""Tasks"" 
                         ALTER COLUMN ""IsCompleted"" TYPE boolean 
                         USING (""IsCompleted""::text::boolean);
-                        
-                        RAISE NOTICE '✅ IsCompleted column converted to boolean';
+                        RAISE NOTICE 'Fixed IsCompleted column';
                     END IF;
+
+                    -- Fix EndDate column
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name = 'Tasks' AND column_name = 'EndDate' 
+                        AND data_type != 'timestamp with time zone'
+                    ) THEN
+                        ALTER TABLE ""Tasks"" 
+                        ALTER COLUMN ""EndDate"" TYPE timestamp with time zone 
+                        USING ""EndDate""::timestamp with time zone;
+                        RAISE NOTICE 'Fixed EndDate column';
+                    END IF;
+
                 END $$;
             ");
-            
-            Console.WriteLine("✅ IsCompleted column fix completed");
+
+            Console.WriteLine("✅ Neon column type fixes applied");
         }
 
-        // Run normal migrations
         await db.Database.MigrateAsync();
-        Console.WriteLine("✅ All migrations applied successfully on Neon");
+        Console.WriteLine("✅ All migrations completed successfully");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"❌ Migration failed: {ex.Message}");
-        
-        // Only rethrow if it's not the column we just tried to fix
-        if (!ex.Message.Contains("IsCompleted"))
+        Console.WriteLine($"❌ Migration error: {ex.Message}");
+        if (!ex.Message.Contains("IsCompleted") && !ex.Message.Contains("EndDate"))
             throw;
         else
-            Console.WriteLine("⚠️ Continuing despite column fix warning...");
+            Console.WriteLine("⚠️ Continuing after column fix...");
     }
 
     // Seed Admin Role
