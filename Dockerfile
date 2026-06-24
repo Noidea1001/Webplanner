@@ -1,4 +1,4 @@
-# ជំហានទី ១: Build កម្មវិធី ASP.NET Core MVC
+# ជំហានទី ១: Build កម្មវិធី ASP.NET Core MVC + API
 FROM ://microsoft.com AS build-env
 WORKDIR /app
 
