@@ -47,7 +47,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 // === Identity ===
-builder.Services.AddIdentity<IdentityUser, IdentityRole>(options => {
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
     options.Password.RequireDigit = false;
     options.Password.RequireUppercase = false;
     options.Password.RequireNonAlphanumeric = false;
@@ -83,14 +83,43 @@ using (var scope = app.Services.CreateScope())
     }
     else
     {
-        // បញ្ជាឱ្យបង្កើត Tables លើ Neon Postgres ដោយស្វ័យប្រវត្តពេលឡើង Render
         db.Database.Migrate();
         Console.WriteLine("📦 PostgreSQL migrations applied");
+    }
 
-        // លុប ឬបិទ DataSeeder ចោល ព្រោះនៅលើ Render គ្មាន File SQLite ឡើយ
-        // DataSeeder.SeedFromSqliteToPostgres(scope.ServiceProvider);
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(); 
+
+    if (!roleManager.RoleExistsAsync("Admin").Result)
+    {
+        roleManager.CreateAsync(new IdentityRole("Admin")).Wait();
+    }
+
+    string adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? "";
+    string adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? "";
+
+    if (!string.IsNullOrEmpty(adminEmail) && !string.IsNullOrEmpty(adminPassword))
+    {
+        var adminUser = userManager.FindByEmailAsync(adminEmail).Result;
+        if (adminUser == null)
+        {
+            var newAdmin = new ApplicationUser 
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                EmailConfirmed = true
+            };
+
+            var createResult = userManager.CreateAsync(newAdmin, adminPassword).Result;
+            if (createResult.Succeeded)
+            {
+                userManager.AddToRoleAsync(newAdmin, "Admin").Wait();
+                Console.WriteLine($" Admin account '{adminEmail}' created successfully!");
+            }
+        }
     }
 }
+
 
 // Middleware
 if (env.IsDevelopment())
@@ -116,7 +145,6 @@ app.MapControllerRoute(
 
 app.MapControllers();
 
-// === កំណត់ Port សម្រាប់ Render ===
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Urls.Add($"http://*:{port}");
 
