@@ -1,22 +1,28 @@
-# ជំហានទី ១: Build កម្មវិធី ASP.NET Core MVC + API
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
+# =============================================
+# Build Stage (.NET 10 SDK)
+# =============================================
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
 WORKDIR /app
 
-# ចម្លងឯកសារ .csproj រួច Restore dependencies
+# Copy csproj and restore dependencies
 COPY *.csproj ./
 RUN dotnet restore
 
-# ចម្លងកូដទាំងអស់ រួច Publish
+# Copy the rest of the code and publish
 COPY . ./
-RUN dotnet publish -c Release -o out
+RUN dotnet publish -c Release -o out --no-restore
 
-# ជំហានទី ២: Runtime Image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+# =============================================
+# Runtime Stage (.NET 10 ASP.NET)
+# =============================================
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
+
 COPY --from=build-env /app/out .
 
-# Environment
+# Settings for Render.com
 ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 
 ENTRYPOINT ["dotnet", "WebPlanner.dll"]
