@@ -1,7 +1,11 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore; 
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebPlanner.Data;
 using WebPlanner.Models;
+
+// ... rest of your code
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,6 +51,10 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<ApplicationDbContext>()
+    .SetApplicationName("WebPlanner");
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
@@ -68,8 +76,9 @@ using (var scope = app.Services.CreateScope())
     {
         if (app.Environment.IsDevelopment())
         {
-            db.Database.EnsureCreated();
-            Console.WriteLine("✅ SQLite database ready");
+            // ណែនាំឱ្យប្រើ Migrate() ដូចគ្នាដើម្បីជៀសវាងបញ្ហា Migration ថ្ងៃក្រោយ
+            db.Database.Migrate();
+            Console.WriteLine("✅ SQLite database and migrations ready");
         }
         else
         {
@@ -85,13 +94,14 @@ using (var scope = app.Services.CreateScope())
         throw;
     }
 
-    // Create Admin Role
+   // Create Admin Role
     try
     {
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        if (!await roleManager.RoleExistsAsync("Admin"))
+        
+        if (!roleManager.RoleExistsAsync("Admin").GetAwaiter().GetResult())
         {
-            await roleManager.CreateAsync(new IdentityRole("Admin"));
+            roleManager.CreateAsync(new IdentityRole("Admin")).GetAwaiter().GetResult();
             Console.WriteLine("✅ Admin role created");
         }
     }
@@ -99,6 +109,7 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"⚠️ Role creation warning: {ex.Message}");
     }
+
 }
 
 Console.WriteLine("🚀 Application startup completed successfully");
