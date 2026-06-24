@@ -1,0 +1,49 @@
+@model TaskItem
+@{
+    ViewData["Title"] = "Delete Task";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12" style="max-width:480px;">
+        <div class="delete-card">
+
+            <!-- Icon -->
+            <div class="delete-icon-wrap">
+                <i class="bi bi-trash-fill"></i>
+            </div>
+
+            <!-- Heading -->
+            <h3 style="font-size:20px;font-weight:800;margin-bottom:8px;">Delete this task?</h3>
+            <p class="text-muted" style="font-size:14px;line-height:1.6;margin-bottom:20px;">
+                You are about to permanently delete
+                <strong style="color:var(--color-text);">@Model.Title</strong>.
+                This action <strong>cannot be undone</strong>.
+            </p>
+
+            <!-- Subtask Warning -->
+            @if (Model.SubTasks.Any())
+            {
+                <div class="alert alert-warning" style="text-align:left;margin-bottom:20px;">
+                    <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0;margin-top:2px;"></i>
+                    <span>
+                        This task has <strong>@Model.SubTasks.Count</strong> subtask(s).
+                        They will become top-level tasks and will <em>not</em> be deleted.
+                    </span>
+                </div>
+            }
+
+            <!-- Actions -->
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+                <div style="display:flex;gap:10px;justify-content:center;">
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary px-4">
+                        <i class="bi bi-arrow-left"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-danger px-4">
+                        <i class="bi bi-trash"></i> Confirm Delete
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>

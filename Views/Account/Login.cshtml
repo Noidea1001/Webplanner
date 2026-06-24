@@ -1,0 +1,68 @@
+@{
+    ViewData["Title"] = "Login";
+}
+
+<a asp-controller="Account" asp-action="Login" class="auth-brand">
+    <span class="auth-brand-mark"><i class="bi bi-journals"></i></span>
+    <span class="auth-brand-text">Planner</span>
+</a>
+
+<div class="auth-card">
+    <div class="auth-card-header">
+        <h2 class="auth-heading">Sign in</h2>
+        <p class="auth-lead">Enter your credentials to access your workspace.</p>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger mb-4">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <form asp-controller="Account" asp-action="Login" asp-route-returnUrl="@ViewData["ReturnUrl"]" method="post" class="auth-form">
+        <div class="mb-3">
+            <label class="form-label" for="loginEmail">Email</label>
+            <input type="email" name="email" id="loginEmail" class="form-control"
+                   placeholder="you@example.com" required autofocus autocomplete="email" />
+        </div>
+
+        <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label mb-0" for="loginPassword">Password</label>
+                <button type="button" class="auth-pw-toggle" onclick="togglePw('loginPassword', this)">Show</button>
+            </div>
+            <input type="password" name="password" id="loginPassword" class="form-control"
+                   placeholder="Your password" required autocomplete="current-password" />
+        </div>
+
+        <div class="form-check mb-4">
+            <input type="checkbox" name="rememberMe" value="true" class="form-check-input" id="rememberMe" />
+            <label class="form-check-label" for="rememberMe">Keep me signed in</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 btn-lg justify-content-center">Sign in</button>
+    </form>
+
+    <p class="auth-footer-text">
+        Don't have an account?
+        <a asp-controller="Account" asp-action="Register" class="auth-link">Create one</a>
+    </p>
+</div>
+
+@section Scripts {
+    <script>
+        function togglePw(id, btn) {
+            var input = document.getElementById(id);
+            var hidden = input.type === 'password';
+            input.type = hidden ? 'text' : 'password';
+            btn.textContent = hidden ? 'Hide' : 'Show';
+        }
+    </script>
+}

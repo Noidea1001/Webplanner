@@ -1,0 +1,78 @@
+@{
+    ViewData["Title"] = "Register";
+}
+
+<a asp-controller="Account" asp-action="Login" class="auth-brand">
+    <span class="auth-brand-mark"><i class="bi bi-journals"></i></span>
+    <span class="auth-brand-text">Planner</span>
+</a>
+
+<div class="auth-card">
+    <div class="auth-card-header">
+        <h2 class="auth-heading">Create account</h2>
+        <p class="auth-lead">Start organizing your tasks in one place.</p>
+    </div>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger mb-4">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <ul>
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+
+    <form asp-controller="Account" asp-action="Register" asp-route-returnUrl="@ViewData["ReturnUrl"]" method="post" class="auth-form">
+        <div class="mb-3">
+            <label class="form-label" for="displayName">Display name</label>
+            <input type="text" name="displayName" id="displayName" class="form-control"
+                   placeholder="Your name" autofocus autocomplete="name" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label" for="regEmail">Email <span class="text-danger">*</span></label>
+            <input type="email" name="email" id="regEmail" class="form-control"
+                   placeholder="you@example.com" required autocomplete="email" />
+        </div>
+
+        <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label mb-0" for="regPassword">Password <span class="text-danger">*</span></label>
+                <button type="button" class="auth-pw-toggle" onclick="togglePw('regPassword', this)">Show</button>
+            </div>
+            <input type="password" name="password" id="regPassword" class="form-control"
+                   placeholder="At least 6 characters" required minlength="6" autocomplete="new-password" />
+        </div>
+
+        <div class="mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <label class="form-label mb-0" for="regConfirm">Confirm password <span class="text-danger">*</span></label>
+                <button type="button" class="auth-pw-toggle" onclick="togglePw('regConfirm', this)">Show</button>
+            </div>
+            <input type="password" name="confirmPassword" id="regConfirm" class="form-control"
+                   placeholder="Repeat your password" required minlength="6" autocomplete="new-password" />
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 btn-lg">Create account</button>
+    </form>
+
+    <p class="auth-footer-text">
+        Already have an account?
+        <a asp-controller="Account" asp-action="Login" class="auth-link">Sign in</a>
+    </p>
+</div>
+
+@section Scripts {
+    <script>
+        function togglePw(id, btn) {
+            var input = document.getElementById(id);
+            var hidden = input.type === 'password';
+            input.type = hidden ? 'text' : 'password';
+            btn.textContent = hidden ? 'Hide' : 'Show';
+        }
+    </script>
+}

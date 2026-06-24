@@ -1,0 +1,410 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["Subtitle"] = "Overview of your tasks and schedule";
+
+    var hour = DateTime.Now.Hour;
+    string greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    string userName = User.Identity?.Name ?? "there";
+    int onTrackTasks = Math.Max(0, Model.PendingTasks - Model.OverdueTasks);
+}
+
+<div class="d-flex flex-column gap-4 dashboard-page">
+
+    <!-- Welcome Banner -->
+    <div class="welcome-banner">
+        <div class="welcome-banner-content">
+            <div class="welcome-greeting">@greeting, @userName</div>
+            <h2 class="welcome-title">Your planning overview</h2>
+            <p class="welcome-sub">
+                @Model.PendingTasks Pending Tasks · @Model.CompletedTasks Done Tasks · @Model.OverdueTasks Overdue Tasks
+            </p>    
+        </div>
+        <div class="welcome-banner-actions">
+            <a asp-action="Create" class="btn btn-light btn-sm">
+                <i class="bi bi-plus-lg"></i> New task
+            </a>
+            <a asp-action="Calendar" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-calendar3"></i> Calendar
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3">
+        <div class="col-6 col-xl-3">
+            <div class="metric-card primary">
+                <div class="progress-ring-container">
+                    <svg class="progress-ring" width="56" height="56">
+                        <circle class="progress-ring-circle-bg" stroke-width="5" fill="transparent" r="22" cx="28" cy="28" />
+                        <circle class="progress-ring-circle" stroke="var(--color-primary)" stroke-width="5" fill="transparent" r="22" cx="28" cy="28"
+                                style="stroke-dasharray: 138; stroke-dashoffset: @(138 - (138 * Model.CompletionRate / 100));" />
+                    </svg>
+                    <div class="progress-ring-text">@Math.Round(Model.CompletionRate)%</div>
+                </div>
+                <div>
+                    <div class="metric-label">Completion</div>
+                    <div class="metric-value">@Model.CompletedTasks<span class="metric-value-dim">/@Model.TotalTasks</span></div>
+                    <div class="metric-sub">Tasks finished</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="metric-card warning">
+                <div class="metric-icon warning"><i class="bi bi-hourglass-split"></i></div>
+                <div>
+                    <div class="metric-label">Pending</div>
+                    <div class="metric-value">@Model.PendingTasks</div>
+                    <div class="metric-sub">Still in progress</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="metric-card success">
+                <div class="metric-icon success"><i class="bi bi-check2-circle"></i></div>
+                <div>
+                    <div class="metric-label">On track</div>
+                    <div class="metric-value">@onTrackTasks</div>
+                    <div class="metric-sub">Not overdue</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="metric-card @(Model.OverdueTasks > 0 ? "danger" : "")">
+                <div class="metric-icon @(Model.OverdueTasks > 0 ? "danger" : "primary")">
+                    <i class="bi bi-exclamation-circle"></i>
+                </div>
+                <div>
+                    <div class="metric-label">Overdue</div>
+                    <div class="metric-value @(Model.OverdueTasks > 0 ? "text-danger" : "")">@Model.OverdueTasks</div>
+                    <div class="metric-sub">Need attention</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="dashboard-charts-row">
+        <div class="dashboard-section-card chart-card">
+            <div class="card-header-section">
+                <h5><i class="bi bi-pie-chart"></i> Task Status</h5>
+            </div>
+            <div class="card-body-section chart-body">
+                <div class="chart-wrap chart-wrap-donut">
+                    <canvas id="statusChart"></canvas>
+                </div>
+                <div class="chart-legend" id="statusLegend"></div>
+            </div>
+        </div>
+
+        <div class="dashboard-section-card chart-card">
+            <div class="card-header-section">
+                <h5><i class="bi bi-bar-chart"></i> Priority Breakdown</h5>
+            </div>
+            <div class="card-body-section chart-body">
+                <div class="chart-wrap">
+                    <canvas id="priorityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-section-card chart-card chart-card-wide">
+            <div class="card-header-section">
+                <h5><i class="bi bi-graph-up"></i> 7-Day Schedule</h5>
+                <span class="chart-badge">Due dates &amp; new tasks</span>
+            </div>
+            <div class="card-body-section chart-body">
+                <div class="chart-wrap chart-wrap-line">
+                    <canvas id="weekChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar + Upcoming -->
+    <div class="section-row">
+        <div class="dashboard-section-card">
+            <div class="card-header-section">
+                <h5><i class="bi bi-calendar3"></i> @Model.CalendarMonthLabel</h5>
+                <a asp-action="Calendar" class="btn btn-sm btn-outline-secondary">Full calendar</a>
+            </div>
+            <div class="card-body-section">
+                <div class="mini-cal">
+                    <div class="mini-cal-weekdays">
+                        @foreach (var wd in new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" })
+                        {
+                            <span>@wd</span>
+                        }
+                    </div>
+                    <div class="mini-cal-grid">
+                        @foreach (var day in Model.CalendarDays)
+                        {
+                            var cls = "mini-cal-day";
+                            if (!day.IsCurrentMonth) cls += " other-month";
+                            if (day.IsToday) cls += " today";
+                            if (day.TaskCount > 0) cls += " has-tasks";
+
+                            <a asp-action="Calendar" asp-route-range="Day" asp-route-date="@day.Date.ToString("yyyy-MM-dd")"
+                               class="@cls" title="@day.Date.ToString("MMM dd") — @day.TaskCount task(s)">
+                                <span class="mini-cal-num">@day.Date.Day</span>
+                                @if (day.TaskCount > 0)
+                                {
+                                    <span class="mini-cal-dots">
+                                        @for (int d = 0; d < Math.Min(day.TaskCount, 3); d++)
+                                        {
+                                            <span class="mini-cal-dot"></span>
+                                        }
+                                    </span>
+                                }
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-section-card d-flex flex-column">
+            <div class="card-header-section">
+                <h5><i class="bi bi-alarm"></i> Upcoming Deadlines</h5>
+            </div>
+            <div class="card-body-section flex-grow-1">
+                @if (!Model.UpcomingTasks.Any())
+                {
+                    <div class="empty-state compact">
+                        <div class="empty-state-icon"><i class="bi bi-calendar-check"></i></div>
+                        <h4>All caught up</h4>
+                        <p>No deadlines in the next 7 days.</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var task in Model.UpcomingTasks)
+                    {
+                        var daysLeft = (task.EndDate!.Value.Date - DateTime.Today).Days;
+                        string dueString = daysLeft == 0 ? "Today" : daysLeft == 1 ? "Tomorrow" : $"{daysLeft} days";
+                        string dueCls = daysLeft == 0 ? "urgent" : daysLeft == 1 ? "soon" : "normal";
+
+                        <div class="upcoming-item">
+                            <div class="upcoming-main">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="priority-dot @task.Priority"></span>
+                                    <a asp-action="Details" asp-route-id="@task.Id" class="upcoming-title">@task.Title</a>
+                                </div>
+                                @if (task.HashtagList.Any())
+                                {
+                                    <div class="upcoming-tags">
+                                        @foreach (var tag in task.HashtagList.Take(2))
+                                        {
+                                            <span class="hashtag-pill">#@tag</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <div class="upcoming-meta">
+                                <span class="due-badge @dueCls">@dueString</span>
+                                <small>@task.EndDate.Value.ToString("MMM dd")</small>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Tags -->
+    @if (Model.PopularTags.Any())
+    {
+        <div class="dashboard-section-card">
+            <div class="card-header-section">
+                <h5><i class="bi bi-tags"></i> Popular Tags</h5>
+            </div>
+            <div class="card-body-section">
+                <div class="d-flex flex-wrap gap-2">
+                    @foreach (var tag in Model.PopularTags)
+                    {
+                        <a asp-action="Search" asp-route-Hashtag="@tag.Key" class="hashtag-pill-large">
+                            #@tag.Key <span class="tag-count">@tag.Value</span>
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        (function () {
+            var css = getComputedStyle(document.documentElement);
+            var colors = {
+                primary: css.getPropertyValue('--color-primary').trim() || '#1E5AA8',
+                high: css.getPropertyValue('--color-high').trim() || '#C53030',
+                medium: css.getPropertyValue('--color-medium').trim() || '#B7791F',
+                low: css.getPropertyValue('--color-low').trim() || '#2F855A',
+                text: css.getPropertyValue('--color-text-faint').trim() || '#8B93A1',
+                grid: css.getPropertyValue('--color-border').trim() || '#DDE1E8',
+                surface: css.getPropertyValue('--color-surface').trim() || '#FFFFFF'
+            };
+
+            var fontFamily = "'Figtree', system-ui, sans-serif";
+            Chart.defaults.font.family = fontFamily;
+            Chart.defaults.color = colors.text;
+
+            var charts = [];
+
+            function makeChart(id, config) {
+                var el = document.getElementById(id);
+                if (!el) return null;
+                var chart = new Chart(el, config);
+                charts.push(chart);
+                return chart;
+            }
+
+            var onTrack = @onTrackTasks;
+            var overdue = @Model.OverdueTasks;
+            var completed = @Model.CompletedTasks;
+
+            makeChart('statusChart', {
+                type: 'doughnut',
+                data: {
+                    labels: ['Completed', 'On track', 'Overdue'],
+                    datasets: [{
+                        data: [completed, onTrack, overdue],
+                        backgroundColor: [colors.low, colors.primary, colors.high],
+                        borderWidth: 0,
+                        hoverOffset: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '68%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: colors.surface,
+                            titleColor: css.getPropertyValue('--color-text').trim(),
+                            bodyColor: css.getPropertyValue('--color-text-muted').trim(),
+                            borderColor: colors.grid,
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8
+                        }
+                    }
+                }
+            });
+
+            makeChart('priorityChart', {
+                type: 'bar',
+                data: {
+                    labels: ['High', 'Medium', 'Low'],
+                    datasets: [{
+                        label: 'Tasks',
+                        data: [@Model.HighPriorityCount, @Model.MediumPriorityCount, @Model.LowPriorityCount],
+                        backgroundColor: [colors.high, colors.medium, colors.low],
+                        borderRadius: 6,
+                        borderSkipped: false,
+                        barThickness: 28
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: colors.surface,
+                            titleColor: css.getPropertyValue('--color-text').trim(),
+                            bodyColor: css.getPropertyValue('--color-text-muted').trim(),
+                            borderColor: colors.grid,
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, precision: 0 },
+                            grid: { color: colors.grid, drawBorder: false }
+                        },
+                        y: {
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+
+            makeChart('weekChart', {
+                type: 'line',
+                data: {
+                    labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.WeekDayLabels)),
+                    datasets: [
+                        {
+                            label: 'Due',
+                            data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TasksDueByDay)),
+                            borderColor: colors.primary,
+                            backgroundColor: colors.primary + '22',
+                            fill: true,
+                            tension: 0.35,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: colors.primary,
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Created',
+                            data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TasksCreatedByDay)),
+                            borderColor: colors.low,
+                            backgroundColor: 'transparent',
+                            tension: 0.35,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: colors.low,
+                            borderWidth: 2,
+                            borderDash: [4, 4]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            align: 'end',
+                            labels: { boxWidth: 12, boxHeight: 12, useBorderRadius: true, borderRadius: 3 }
+                        },
+                        tooltip: {
+                            backgroundColor: colors.surface,
+                            titleColor: css.getPropertyValue('--color-text').trim(),
+                            bodyColor: css.getPropertyValue('--color-text-muted').trim(),
+                            borderColor: colors.grid,
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1, precision: 0 },
+                            grid: { color: colors.grid, drawBorder: false }
+                        }
+                    }
+                }
+            });
+
+            document.addEventListener('themechange', function () {
+                charts.forEach(function (c) { c.destroy(); });
+                charts.length = 0;
+                location.reload();
+            });
+        })();
+    </script>
+}

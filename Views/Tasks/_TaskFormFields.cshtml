@@ -1,0 +1,60 @@
+@model TaskFormViewModel
+
+<!-- Title -->
+<div class="mb-4">
+    <label asp-for="Title" class="form-label">Task Title <span style="color:var(--color-high);">*</span></label>
+    <input asp-for="Title" class="form-control" placeholder="e.g. Design landing page mockup" required autofocus />
+    <span asp-validation-for="Title" class="text-danger mt-1 d-block"></span>
+</div>
+
+<!-- Description -->
+<div class="mb-4">
+    <label asp-for="Description" class="form-label">Description</label>
+    <textarea asp-for="Description" class="form-control" rows="4"
+              placeholder="Add context, steps, or notes for this task…"
+              style="resize:vertical;min-height:100px;"></textarea>
+</div>
+
+<!-- Priority & End Date -->
+<div class="row mb-4" style="--bs-gutter-x:16px;">
+    <div class="col-sm-6">
+        <label asp-for="Priority" class="form-label">Priority</label>
+        <select asp-for="Priority" class="form-select" asp-items="Html.GetEnumSelectList<TaskPriority>()"></select>
+    </div>
+    <div class="col-sm-6">
+        <label asp-for="EndDate" class="form-label">Due Date</label>
+        <input asp-for="EndDate" type="date" class="form-control" />
+    </div>
+</div>
+
+<!-- Parent Task -->
+<div class="mb-4">
+    <label asp-for="ParentTaskId" class="form-label">Parent Task</label>
+    <select asp-for="ParentTaskId" class="form-select" asp-items="Model.AvailableParentTasks">
+        <option value="">— None (top-level task) —</option>
+    </select>
+    <small class="text-faint mt-1 d-block" style="font-size:12px;">
+        <i class="bi bi-info-circle"></i> Nest this task under another to create a hierarchy.
+    </small>
+</div>
+
+<!-- Hashtags -->
+<div class="mb-4">
+    <label asp-for="Hashtags" class="form-label">Hashtags</label>
+    <div class="input-group">
+        <span class="input-group-text"><i class="bi bi-hash"></i></span>
+        <input asp-for="Hashtags" class="form-control" placeholder="work, design, urgent  (comma-separated)" />
+    </div>
+    <small class="text-faint mt-1 d-block" style="font-size:12px;">
+        <i class="bi bi-info-circle"></i> Separate tags with commas. Used for filtering and search.
+    </small>
+</div>
+
+<!-- Attachment -->
+<div class="mb-2">
+    <label asp-for="NewAttachment" class="form-label">Attachment <span class="text-faint fw-normal">(optional)</span></label>
+    <input asp-for="NewAttachment" type="file" class="form-control" />
+    <small class="text-faint mt-1 d-block" style="font-size:12px;">
+        <i class="bi bi-paperclip"></i> Upload any file related to this task.
+    </small>
+</div>

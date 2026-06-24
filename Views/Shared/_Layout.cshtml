@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Planner — Organize your tasks, projects, and deadlines in one place." />
+    <meta name="theme-color" content="#1E5AA8" />
+    <title>@(ViewData["Title"] != null ? ViewData["Title"] + " · Planner" : "Planner")</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+@{
+    bool authed = User.Identity?.IsAuthenticated == true;
+    string currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+    string? pageSubtitle = ViewData["Subtitle"] as string;
+}
+
+@if (authed)
+{
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+    <!-- Command palette -->
+    <div class="command-palette" id="commandPalette" aria-hidden="true" role="dialog" aria-label="Quick search">
+        <div class="command-palette-backdrop"></div>
+        <div class="command-palette-dialog">
+            <div class="command-palette-header">
+                <i class="bi bi-search"></i>
+                <form id="commandPaletteForm" data-search-url="@Url.Action("Search", "Tasks")">
+                    <input type="text" id="commandPaletteInput" class="command-palette-input"
+                           placeholder="Search tasks by title, description, or hashtag…"
+                           autocomplete="off" aria-label="Search tasks" />
+                </form>
+                <kbd class="command-kbd">Esc</kbd>
+            </div>
+            <div class="command-palette-hints">
+                <span><kbd>Ctrl</kbd> + <kbd>K</kbd> to open</span>
+                <span>Press <kbd>Enter</kbd> to search</span>
+            </div>
+            <div class="command-palette-shortcuts">
+                <a asp-controller="Tasks" asp-action="Create" class="command-shortcut">
+                    <i class="bi bi-plus-lg"></i> New task
+                </a>
+                <a asp-controller="Tasks" asp-action="Dashboard" class="command-shortcut">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+                <a asp-controller="Tasks" asp-action="Board" class="command-shortcut">
+                    <i class="bi bi-kanban"></i> Board
+                </a>
+                <a asp-controller="Tasks" asp-action="Calendar" class="command-shortcut">
+                    <i class="bi bi-calendar3"></i> Calendar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-shell">
+        <aside class="sidebar" id="appSidebar" role="navigation" aria-label="Main navigation">
+            <div class="sidebar-header">
+                <a asp-controller="Tasks" asp-action="Dashboard" class="sidebar-brand">
+                    <span class="brand-mark"><i class="bi bi-journals"></i></span>
+                    <span class="brand-text">Planner Site</span>
+                </a>
+            </div>
+
+            <div class="sidebar-body">
+                <a asp-controller="Tasks" asp-action="Create" class="new-task-btn">
+                    <i class="bi bi-plus-lg"></i> New Task
+                </a>
+
+                <div class="sidebar-section-label">Main</div>
+
+                <a class="sidebar-nav-link @(currentAction == "Dashboard" ? "active" : "")"
+                   asp-controller="Tasks" asp-action="Dashboard">
+                    <i class="bi bi-speedometer2"></i> Dashboard
+                </a>
+
+                <a class="sidebar-nav-link @(currentAction is "Index" or "Details" ? "active" : "")"
+                   asp-controller="Tasks" asp-action="Index">
+                    <i class="bi bi-list-task"></i> All Tasks
+                </a>
+
+                <div class="sidebar-section-label">Views</div>
+
+                <a class="sidebar-nav-link @(currentAction == "Board" ? "active" : "")"
+                   asp-controller="Tasks" asp-action="Board">
+                    <i class="bi bi-kanban"></i> Board
+                </a>
+
+                <a class="sidebar-nav-link @(currentAction == "Calendar" ? "active" : "")"
+                   asp-controller="Tasks" asp-action="Calendar">
+                    <i class="bi bi-calendar3"></i> Calendar
+                </a>
+
+                <div class="sidebar-section-label">Tools</div>
+
+                <a class="sidebar-nav-link @(currentAction == "Search" ? "active" : "")"
+                   asp-controller="Tasks" asp-action="Search">
+                    <i class="bi bi-search"></i> Search
+                </a>
+
+                <button type="button" class="sidebar-nav-link sidebar-nav-btn" data-open-palette>
+                    <i class="bi bi-command"></i> Quick Search
+                    <kbd class="sidebar-kbd">⌘K</kbd>
+                </button>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-card">
+                    <div class="user-avatar">@(User.Identity!.Name!.Substring(0, 1).ToUpper())</div>
+                    <div class="user-info">
+                        <span class="user-name">@User.Identity!.Name</span>
+                        <span class="user-role">Member</span>
+                    </div>
+                    <form asp-controller="Account" asp-action="Logout" method="post" style="margin:0">
+                        <button type="submit" class="logout-btn" title="Sign out">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </aside>
+
+        <div class="app-main" id="appMain">
+            <header class="topbar" role="banner">
+                <button class="sidebar-toggle-btn" id="sidebarToggle" type="button"
+                        aria-label="Toggle sidebar" aria-expanded="false" aria-controls="appSidebar">
+                    <i class="bi bi-list"></i>
+                </button>
+
+                <div class="topbar-heading">
+                    <h1 class="topbar-title">@ViewData["Title"]</h1>
+                    @if (!string.IsNullOrWhiteSpace(pageSubtitle))
+                    {
+                        <p class="topbar-subtitle">@pageSubtitle</p>
+                    }
+                </div>
+
+                <div class="topbar-actions">
+                    <button type="button" class="topbar-search-btn" data-open-palette title="Quick search (Ctrl+K)">
+                        <i class="bi bi-search"></i>
+                        <span class="topbar-search-label">Search…</span>
+                        <kbd class="topbar-kbd">⌘K</kbd>
+                    </button>
+
+                    <span class="topbar-date" title="Today">
+                        <i class="bi bi-calendar-event"></i>
+                        @DateTime.Today.ToString("MMM dd")
+                    </span>
+
+                    <button type="button" class="theme-toggle-btn topbar-icon-btn" title="Toggle theme" aria-label="Toggle theme">
+                        <i class="bi bi-moon-stars-fill"></i>
+                    </button>
+
+                    <a asp-controller="Tasks" asp-action="Create" class="btn btn-primary btn-sm topbar-new-btn">
+                        <i class="bi bi-plus-lg"></i>
+                        <span class="topbar-new-label">New</span>
+                    </a>
+                </div>
+            </header>
+
+            <main class="app-content" role="main">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+}
+else
+{
+    <div class="auth-page">
+        <main class="auth-page-inner" role="main">
+            @RenderBody()
+        </main>
+    </div>
+}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="~/js/site.js"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

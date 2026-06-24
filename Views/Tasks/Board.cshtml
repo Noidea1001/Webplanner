@@ -1,0 +1,240 @@
+@model List<TaskItem>
+@{
+    ViewData["Title"] = "Board";
+    ViewData["Subtitle"] = "Drag cards to change priority or mark complete";
+
+    var lowTasks = Model.Where(t => !t.IsCompleted && t.Priority == TaskPriority.Low).ToList();
+    var mediumTasks = Model.Where(t => !t.IsCompleted && t.Priority == TaskPriority.Medium).ToList();
+    var highTasks = Model.Where(t => !t.IsCompleted && t.Priority == TaskPriority.High).ToList();
+    var completedTasks = Model.Where(t => t.IsCompleted).ToList();
+}
+
+<div class="d-flex flex-column gap-4">
+    <div class="tasks-filter-bar">
+        <p class="text-muted mb-0" style="font-size:14px;">
+            <i class="bi bi-arrows-move me-1"></i>
+            Drag cards between columns to update priority or completion status.
+        </p>
+        <div class="input-group" style="max-width:280px;">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" id="boardSearch" class="form-control" placeholder="Filter tasks…" />
+        </div>
+    </div>
+
+    <div class="row g-3 align-items-stretch">
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="kanban-column" id="col-low" data-priority="0" data-completed="false">
+                <div class="kanban-column-header">
+                    <div class="kanban-col-title">
+                        <span class="kanban-col-dot todo"></span>
+                        <span class="priority-dot Low"></span>
+                        Low Priority
+                        <span class="col-count" id="count-low">@lowTasks.Count</span>
+                    </div>
+                    <a asp-action="Create" asp-route-priority="Low" class="btn btn-sm btn-outline-secondary btn-icon" title="Add task">
+                        <i class="bi bi-plus-lg"></i>
+                    </a>
+                </div>
+                <div class="kanban-cards-container" id="cards-low">
+                    @foreach (var task in lowTasks)
+                    {
+                        @await Html.PartialAsync("_TaskCard", task)
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="kanban-column" id="col-medium" data-priority="1" data-completed="false">
+                <div class="kanban-column-header">
+                    <div class="kanban-col-title">
+                        <span class="kanban-col-dot doing"></span>
+                        <span class="priority-dot Medium"></span>
+                        Medium
+                        <span class="col-count" id="count-medium">@mediumTasks.Count</span>
+                    </div>
+                    <a asp-action="Create" asp-route-priority="Medium" class="btn btn-sm btn-outline-secondary btn-icon" title="Add task">
+                        <i class="bi bi-plus-lg"></i>
+                    </a>
+                </div>
+                <div class="kanban-cards-container" id="cards-medium">
+                    @foreach (var task in mediumTasks)
+                    {
+                        @await Html.PartialAsync("_TaskCard", task)
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="kanban-column" id="col-high" data-priority="2" data-completed="false">
+                <div class="kanban-column-header">
+                    <div class="kanban-col-title">
+                        <span class="kanban-col-dot" style="background:var(--color-high);"></span>
+                        <span class="priority-dot High"></span>
+                        High Priority
+                        <span class="col-count" id="count-high">@highTasks.Count</span>
+                    </div>
+                    <a asp-action="Create" asp-route-priority="High" class="btn btn-sm btn-outline-secondary btn-icon" title="Add task">
+                        <i class="bi bi-plus-lg"></i>
+                    </a>
+                </div>
+                <div class="kanban-cards-container" id="cards-high">
+                    @foreach (var task in highTasks)
+                    {
+                        @await Html.PartialAsync("_TaskCard", task)
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-xl-3">
+            <div class="kanban-column completed-col" id="col-completed" data-priority="1" data-completed="true">
+                <div class="kanban-column-header">
+                    <div class="kanban-col-title">
+                        <span class="kanban-col-dot done"></span>
+                        Completed
+                        <span class="col-count" id="count-completed">@completedTasks.Count</span>
+                    </div>
+                    <a asp-action="Create" asp-route-isCompleted="true" class="btn btn-sm btn-outline-secondary btn-icon" title="Add task">
+                        <i class="bi bi-plus-lg"></i>
+                    </a>
+                </div>
+                <div class="kanban-cards-container" id="cards-completed">
+                    @foreach (var task in completedTasks)
+                    {
+                        @await Html.PartialAsync("_TaskCard", task)
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+    <div id="boardToast" class="toast app-toast align-items-center border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMessage">Task updated.</div>
+            <button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const containers = document.querySelectorAll('.kanban-cards-container');
+            const searchInput = document.getElementById('boardSearch');
+            let draggedCard = null;
+
+            document.addEventListener('dragstart', function (e) {
+                if (e.target.classList.contains('kanban-card')) {
+                    draggedCard = e.target;
+                    e.target.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', e.target.getAttribute('data-id'));
+                    e.dataTransfer.effectAllowed = 'move';
+                }
+            });
+
+            document.addEventListener('dragend', function (e) {
+                if (e.target.classList.contains('kanban-card')) {
+                    e.target.classList.remove('dragging');
+                    containers.forEach(function (c) { c.classList.remove('drag-over-container'); });
+                }
+            });
+
+            containers.forEach(function (container) {
+                container.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    container.classList.add('drag-over-container');
+                });
+
+                container.addEventListener('dragleave', function (e) {
+                    const rect = container.getBoundingClientRect();
+                    if (e.clientX < rect.left || e.clientX >= rect.right || e.clientY < rect.top || e.clientY >= rect.bottom) {
+                        container.classList.remove('drag-over-container');
+                    }
+                });
+
+                container.addEventListener('drop', async function (e) {
+                    e.preventDefault();
+                    container.classList.remove('drag-over-container');
+
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    if (!taskId || !draggedCard) return;
+
+                    const column = container.closest('.kanban-column');
+                    if (!column) return;
+
+                    const targetPriority = parseInt(column.getAttribute('data-priority'));
+                    const targetCompleted = column.getAttribute('data-completed') === 'true';
+                    const originalParent = draggedCard.parentElement;
+                    const originalNextSibling = draggedCard.nextElementSibling;
+
+                    container.appendChild(draggedCard);
+
+                    if (targetCompleted) {
+                        draggedCard.classList.add('completed-card');
+                    } else {
+                        draggedCard.classList.remove('completed-card');
+                    }
+
+                    updateAllColumnCounts();
+
+                    try {
+                        const response = await fetch('/api/tasks/' + taskId + '/move', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ priority: targetPriority, isCompleted: targetCompleted })
+                        });
+
+                        if (!response.ok) throw new Error('Failed');
+
+                        showToast('Task updated successfully!', 'toast-success');
+                    } catch (error) {
+                        if (originalNextSibling) {
+                            originalParent.insertBefore(draggedCard, originalNextSibling);
+                        } else {
+                            originalParent.appendChild(draggedCard);
+                        }
+                        const originalCompleted = originalParent.closest('.kanban-column').getAttribute('data-completed') === 'true';
+                        draggedCard.classList.toggle('completed-card', originalCompleted);
+                        updateAllColumnCounts();
+                        showToast('Failed to update task.', 'toast-danger');
+                    }
+                    draggedCard = null;
+                });
+            });
+
+            if (searchInput) {
+                searchInput.addEventListener('input', function () {
+                    const term = searchInput.value.toLowerCase().trim();
+                    document.querySelectorAll('.kanban-card').forEach(function (card) {
+                        const titleText = card.querySelector('.card-task-title').innerText.toLowerCase();
+                        const descText = (card.getAttribute('data-desc') || '').toLowerCase();
+                        const hashtagsText = (card.getAttribute('data-tags') || '').toLowerCase();
+                        card.style.display = (titleText.includes(term) || descText.includes(term) || hashtagsText.includes(term)) ? '' : 'none';
+                    });
+                    updateAllColumnCounts();
+                });
+            }
+
+            function updateAllColumnCounts() {
+                ['low', 'medium', 'high', 'completed'].forEach(function (col) {
+                    const cardsContainer = document.getElementById('cards-' + col);
+                    const count = Array.from(cardsContainer.children).filter(function (card) { return card.style.display !== 'none'; }).length;
+                    document.getElementById('count-' + col).innerText = count;
+                });
+            }
+
+            function showToast(message, cls) {
+                const toastEl = document.getElementById('boardToast');
+                const toastMsg = document.getElementById('toastMessage');
+                toastEl.className = 'toast app-toast align-items-center border-0 ' + cls;
+                toastMsg.innerText = message;
+                bootstrap.Toast.getOrCreateInstance(toastEl).show();
+            }
+        });
+    </script>
+}

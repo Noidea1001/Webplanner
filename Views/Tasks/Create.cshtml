@@ -1,0 +1,46 @@
+@model TaskFormViewModel
+@{
+    ViewData["Title"] = "New Task";
+}
+
+<div class="row justify-content-center">
+    <div class="col-12" style="max-width:720px;">
+        <div class="form-card">
+            <!-- Header -->
+            <div class="form-card-header">
+                <div class="d-flex align-items-center gap-3 mb-1">
+                    <div style="width:38px;height:38px;border-radius:10px;background:var(--color-primary-light);display:flex;align-items:center;justify-content:center;color:var(--color-primary);font-size:18px;">
+                        <i class="bi bi-plus-circle-fill"></i>
+                    </div>
+                    <div>
+                        <h3>Create a new task</h3>
+                        <p>Fill in the details below to add a task to your planner.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <form asp-action="Create" method="post" enctype="multipart/form-data">
+                <div class="form-card-body">
+                    @await Html.PartialAsync("_TaskFormFields", Model)
+                </div>
+
+                <!-- Footer -->
+                <div class="form-card-footer">
+                    <div class="form-check m-0" style="display:flex;align-items:center;gap:8px;">
+                        <input asp-for="IsCompleted" class="form-check-input" id="isCompletedCreate" />
+                        <label for="isCompletedCreate" class="form-label m-0" style="font-size:13.5px;color:var(--color-text-muted);">
+                            Mark as completed immediately
+                        </label>
+                    </div>
+                    <div style="display:flex;gap:8px;">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg"></i> Create Task
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,291 @@
+@model TaskItem
+@{
+    ViewData["Title"] = "Task Details";
+    bool isOverdue        = !Model.IsCompleted && Model.EndDate.HasValue && Model.EndDate.Value.Date < DateTime.Today;
+    int  completedSubs    = Model.SubTasks.Count(s => s.IsCompleted);
+    int  totalSubs        = Model.SubTasks.Count;
+    double subtaskProgress = totalSubs > 0 ? (double)completedSubs / totalSubs * 100 : 0;
+}
+
+<div class="d-flex flex-column gap-4">
+
+    <!-- Breadcrumb + Actions -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <nav class="details-breadcrumb" aria-label="breadcrumb">
+            <a asp-action="Index">Tasks</a>
+            @if (Model.ParentTask != null)
+            {
+                <span class="separator">/</span>
+                <a asp-action="Details" asp-route-id="@Model.ParentTask.Id"
+                   style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;">
+                    @Model.ParentTask.Title
+                </a>
+            }
+            <span class="separator">/</span>
+            <span class="current" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;">
+                @Model.Title
+            </span>
+        </nav>
+
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+            <a asp-action="Edit"   asp-route-id="@Model.Id" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i> Edit</a>
+            <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i> Delete</a>
+        </div>
+    </div>
+
+    <!-- Two-column layout -->
+    <div class="row align-items-start" style="--bs-gutter-x:20px;--bs-gutter-y:20px;">
+
+        <!-- LEFT: Title, Subtasks, Comments -->
+        <div class="col-12 col-lg-8 d-flex flex-column gap-4">
+
+            <!-- Title & Description -->
+            <div class="dashboard-section-card">
+                <div class="card-body-section" style="padding-top:24px;">
+                    <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+                        <span class="priority-pill @Model.Priority">@Model.Priority</span>
+                        @if (Model.IsCompleted)
+                        {
+                            <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Completed</span>
+                        }
+                        else if (isOverdue)
+                        {
+                            <span class="badge bg-danger"><i class="bi bi-exclamation-triangle-fill"></i> Overdue</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning"><i class="bi bi-clock-fill"></i> Pending</span>
+                        }
+                    </div>
+
+                    <h2 class="task-detail-title">@Model.Title</h2>
+
+                    <div class="uppercase-tracking mb-2">Description</div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Description))
+                    {
+                        <div style="white-space:pre-line;color:var(--color-text-muted);font-size:15px;line-height:1.7;">@Model.Description</div>
+                    }
+                    else
+                    {
+                        <p class="text-faint" style="font-style:italic;font-size:14px;">No description provided.</p>
+                    }
+                </div>
+            </div>
+
+            <!-- Subtasks -->
+            <div class="dashboard-section-card">
+                <div class="card-header-section">
+                    <h5>
+                        <i class="bi bi-diagram-2-fill"></i> Subtasks
+                        @if (totalSubs > 0)
+                        {
+                            <span class="col-count ms-1">@completedSubs/@totalSubs</span>
+                        }
+                    </h5>
+                    <a asp-action="Create" asp-route-parentTaskId="@Model.Id" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus-lg"></i> Add Subtask
+                    </a>
+                </div>
+                <div class="card-body-section">
+                    @if (totalSubs > 0)
+                    {
+                        <div class="subtask-progress-bar mb-3">
+                            <div class="subtask-progress-fill" style="width:@subtaskProgress%"></div>
+                        </div>
+                        <div class="task-list">
+                            @foreach (var sub in Model.SubTasks)
+                            {
+                                <div class="task-list-row task-row @sub.Priority @(sub.IsCompleted ? "completed" : "")"
+                                     style="padding:10px 14px;">
+                                    <span class="priority-dot @sub.Priority"></span>
+                                    <a asp-action="Details" asp-route-id="@sub.Id" class="task-title" style="flex:1;">@sub.Title</a>
+                                    <span class="priority-pill @sub.Priority">@sub.Priority</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-faint text-center" style="font-size:14px;padding:12px 0;">
+                            No subtasks yet. Break this task into smaller steps.
+                        </p>
+                    }
+                </div>
+            </div>
+
+            <!-- Comments -->
+            <div class="dashboard-section-card">
+                <div class="card-header-section">
+                    <h5><i class="bi bi-chat-left-text-fill"></i> Activity & Comments</h5>
+                </div>
+                <div class="card-body-section">
+                    <!-- Add comment -->
+                    <form asp-action="AddComment" method="post" class="mb-4">
+                        <input type="hidden" name="TaskItemId" value="@Model.Id" />
+                        <div class="input-group">
+                            <input type="text" name="Text" class="form-control"
+                                   placeholder="Ask a question or post an update…" required />
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send-fill"></i>
+                            </button>
+                        </div>
+                    </form>
+
+                    @if (!Model.Comments.Any())
+                    {
+                        <p class="text-faint text-center" style="font-size:14px;padding:8px 0;">
+                            No comments yet. Start the conversation.
+                        </p>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-3">
+                            @foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedAt))
+                            {
+                                <div class="comment-bubble">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="comment-author">You</span>
+                                        <span class="comment-time">@comment.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy · HH:mm")</span>
+                                    </div>
+                                    <div class="comment-text">@comment.Text</div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Properties + Attachments -->
+        <div class="col-12 col-lg-4 d-flex flex-column gap-4">
+
+            <!-- Task Properties -->
+            <div class="dashboard-section-card">
+                <div class="card-header-section">
+                    <h5><i class="bi bi-info-circle-fill"></i> Properties</h5>
+                </div>
+                <div class="card-body-section">
+                    <div class="meta-property">
+                        <div class="meta-key">Status</div>
+                        <div>
+                            @if (Model.IsCompleted)
+                            {
+                                <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Completed</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning"><i class="bi bi-clock-fill"></i> Pending</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="meta-property">
+                        <div class="meta-key">Priority</div>
+                        <span class="priority-pill @Model.Priority">@Model.Priority</span>
+                    </div>
+
+                    <div class="meta-property">
+                        <div class="meta-key">Due Date</div>
+                        @if (Model.EndDate.HasValue)
+                        {
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge @(isOverdue ? "bg-danger" : "bg-light")">
+                                    <i class="bi bi-calendar-event"></i>
+                                    @Model.EndDate.Value.ToString("MMM dd, yyyy")
+                                </span>
+                                @if (isOverdue)
+                                {
+                                    <small class="text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Overdue</small>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-faint" style="font-size:13px;font-style:italic;">No due date</span>
+                        }
+                    </div>
+
+                    @if (Model.ParentTask != null)
+                    {
+                        <div class="meta-property">
+                            <div class="meta-key">Parent Task</div>
+                            <a asp-action="Details" asp-route-id="@Model.ParentTask.Id" class="task-title" style="font-size:13.5px;">
+                                @Model.ParentTask.Title
+                            </a>
+                        </div>
+                    }
+
+                    <div class="meta-property">
+                        <div class="meta-key">Hashtags</div>
+                        @if (Model.HashtagList.Any())
+                        {
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach (var tag in Model.HashtagList)
+                                {
+                                    <span class="hashtag-pill">#@tag</span>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <span class="text-faint" style="font-size:13px;font-style:italic;">No hashtags</span>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attachments -->
+            <div class="dashboard-section-card">
+                <div class="card-header-section">
+                    <h5><i class="bi bi-paperclip"></i> Attachments</h5>
+                </div>
+                <div class="card-body-section">
+                    <!-- Upload -->
+                    <form asp-controller="Tasks" asp-action="Edit" method="post" enctype="multipart/form-data" class="mb-3">
+                        <input type="hidden" name="Id"          value="@Model.Id" />
+                        <input type="hidden" name="Title"       value="@Model.Title" />
+                        <input type="hidden" name="Description" value="@Model.Description" />
+                        <input type="hidden" name="Priority"    value="@Model.Priority" />
+                        <input type="hidden" name="EndDate"     value="@Model.EndDate?.ToString("yyyy-MM-dd")" />
+                        <input type="hidden" name="Hashtags"    value="@Model.Hashtags" />
+                        <input type="hidden" name="IsCompleted" value="@(Model.IsCompleted ? "true" : "false")" />
+                        <input type="hidden" name="ParentTaskId" value="@Model.ParentTaskId" />
+
+                        <input type="file" name="NewAttachment" class="form-control form-control-sm mb-2" required />
+                        <button type="submit" class="btn btn-sm btn-primary w-100">
+                            <i class="bi bi-upload"></i> Upload File
+                        </button>
+                    </form>
+
+                    @if (!Model.Attachments.Any())
+                    {
+                        <p class="text-faint text-center" style="font-size:13px;padding:8px 0;">No files attached.</p>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-2">
+                            @foreach (var file in Model.Attachments)
+                            {
+                                var sizeKb = Math.Round((double)file.FileSizeBytes / 1024, 1);
+                                <div class="attachment-item">
+                                    <div class="attachment-icon"><i class="bi bi-file-earmark-arrow-down-fill"></i></div>
+                                    <a href="/uploads/@file.FilePath" target="_blank" style="flex:1;min-width:0;text-decoration:none;" title="@file.FileName">
+                                        <div class="attachment-name text-truncate">@file.FileName</div>
+                                        <div class="attachment-size">@sizeKb KB</div>
+                                    </a>
+                                    <form asp-action="DeleteAttachment" method="post" style="margin:0;">
+                                        <input type="hidden" name="attachmentId" value="@file.Id" />
+                                        <input type="hidden" name="taskId"       value="@Model.Id" />
+                                        <button type="submit" class="btn btn-icon btn-sm btn-outline-secondary hover-danger" title="Remove">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

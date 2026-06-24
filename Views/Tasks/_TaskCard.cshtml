@@ -1,0 +1,65 @@
+@model TaskItem
+@{
+    bool isOverdue = !Model.IsCompleted && Model.EndDate.HasValue && Model.EndDate.Value.Date < DateTime.Today;
+}
+
+<div class="kanban-card @Model.Priority @(Model.IsCompleted ? "completed-card" : "")"
+     draggable="true"
+     data-id="@Model.Id"
+     data-desc="@(Model.Description ?? "")"
+     data-tags="@(Model.Hashtags ?? "")">
+
+    <div class="card-priority-stripe @Model.Priority"></div>
+
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+            <a asp-action="Details" asp-route-id="@Model.Id" class="card-task-title fw-semibold text-decoration-none d-block flex-grow-1" style="font-size:14px;">
+                @Model.Title
+            </a>
+            <div class="card-hover-actions d-flex gap-1">
+                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-icon btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-icon btn-sm btn-outline-secondary hover-danger" title="Delete"><i class="bi bi-trash"></i></a>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Description))
+        {
+            var snippet = Model.Description.Length > 80 ? Model.Description.Substring(0, 77) + "..." : Model.Description;
+            <p class="text-muted mb-2" style="font-size:12.5px;line-height:1.4;margin:0;">@snippet</p>
+        }
+
+        @if (Model.HashtagList.Any())
+        {
+            <div class="d-flex flex-wrap gap-1 mb-2">
+                @foreach (var tag in Model.HashtagList)
+                {
+                    <span class="hashtag-pill" style="font-size:10px;padding:2px 7px;">#@tag</span>
+                }
+            </div>
+        }
+
+        <div class="d-flex justify-content-between align-items-center pt-2" style="border-top:1px solid var(--color-border);">
+            <div class="d-flex gap-2">
+                @if (Model.SubTasks.Any())
+                {
+                    <span class="meta-chip" style="font-size:11px;padding:2px 8px;">
+                        <i class="bi bi-diagram-2"></i> @Model.SubTasks.Count
+                    </span>
+                }
+                @if (Model.Attachments.Any())
+                {
+                    <span class="meta-chip" style="font-size:11px;padding:2px 8px;">
+                        <i class="bi bi-paperclip"></i> @Model.Attachments.Count
+                    </span>
+                }
+            </div>
+
+            @if (Model.EndDate.HasValue)
+            {
+                <span class="badge @(isOverdue ? "bg-danger" : "bg-light")" style="font-size:11px;">
+                    <i class="bi bi-calendar-event"></i> @Model.EndDate.Value.ToString("MMM dd")
+                </span>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,110 @@
+@model List<TaskItem>
+@{
+    ViewData["Title"] = "Tasks";
+    ViewData["Subtitle"] = "Browse and filter everything";
+    var completedCount = Model.Count(t => t.IsCompleted);
+    var pendingCount   = Model.Count(t => !t.IsCompleted);
+}
+
+<div class="d-flex flex-column gap-3">
+
+    <!-- Filter / Stats Bar -->
+    <div class="tasks-filter-bar">
+        <div class="tasks-stat-group">
+            <span class="stat-badge pending">
+                <span class="stat-dot"></span>
+                @pendingCount Pending
+            </span>
+            <span class="stat-badge done">
+                <span class="stat-dot"></span>
+                @completedCount Done
+            </span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;width:100%;max-width:300px;">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="text" id="taskListSearch" class="form-control" placeholder="Filter tasks…" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Tasks -->
+    @if (!Model.Any())
+    {
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="bi bi-clipboard-check"></i></div>
+            <h4>No tasks yet</h4>
+            <p>Add your first task to get started.</p>
+            <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> New Task</a>
+        </div>
+    }
+    else
+    {
+        <div class="task-list" id="taskListContainer">
+            @foreach (var task in Model)
+            {
+                <div class="task-list-row task-row @task.Priority @(task.IsCompleted ? "completed" : "")"
+                     data-title="@task.Title.ToLower()"
+                     data-tags="@(task.Hashtags?.ToLower() ?? "")">
+
+                    <span class="priority-dot @task.Priority"></span>
+
+                    <div style="flex:1;min-width:0;">
+                        <a asp-action="Details" asp-route-id="@task.Id" class="task-title">@task.Title</a>
+
+                        @if (task.SubTasks.Any() || task.Attachments.Any() || task.HashtagList.Any())
+                        {
+                            <div class="d-flex gap-2 flex-wrap align-items-center mt-2">
+                                @if (task.SubTasks.Any())
+                                {
+                                    var compSubs = task.SubTasks.Count(s => s.IsCompleted);
+                                    <span class="meta-chip"><i class="bi bi-diagram-2"></i> @compSubs/@task.SubTasks.Count</span>
+                                }
+                                @if (task.Attachments.Any())
+                                {
+                                    <span class="meta-chip"><i class="bi bi-paperclip"></i> @task.Attachments.Count</span>
+                                }
+                                @foreach (var tag in task.HashtagList)
+                                {
+                                    <span class="hashtag-pill">#@tag</span>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="task-meta">
+                        @if (task.EndDate.HasValue)
+                        {
+                            bool isOver = !task.IsCompleted && task.EndDate.Value.Date < DateTime.Today;
+                            <span class="badge @(isOver ? "bg-danger" : "bg-light")">
+                                <i class="bi bi-calendar-event"></i> @task.EndDate.Value.ToString("MMM dd")
+                            </span>
+                        }
+                        <span class="priority-pill @task.Priority">@task.Priority</span>
+                    </div>
+
+                    <div style="display:flex;gap:4px;flex-shrink:0;">
+                        <a asp-action="Edit"   asp-route-id="@task.Id" class="btn btn-sm btn-icon btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+                        <a asp-action="Delete" asp-route-id="@task.Id" class="btn btn-sm btn-icon btn-outline-secondary" title="Delete"><i class="bi bi-trash"></i></a>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const searchInput = document.getElementById('taskListSearch');
+            if (!searchInput) return;
+            searchInput.addEventListener('input', function () {
+                const term = this.value.toLowerCase().trim();
+                document.querySelectorAll('#taskListContainer .task-list-row').forEach(function (row) {
+                    const match = row.dataset.title.includes(term) || row.dataset.tags.includes(term);
+                    row.style.display = match ? '' : 'none';
+                });
+            });
+        }());
+    </script>
+}

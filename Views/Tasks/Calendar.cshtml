@@ -1,0 +1,267 @@
+@model CalendarViewModel
+@{
+    ViewData["Title"] = "Calendar";
+    ViewData["Subtitle"] = "View deadlines by day, week, month, or year";
+    string FmtDate(DateTime d) => d.ToString("yyyy-MM-dd");
+    var today = DateTime.Today;
+}
+
+<div class="d-flex flex-column gap-4">
+    <!-- Calendar Controls -->
+    <div class="cal-toolbar">
+            <!-- Range Selection Toggles -->
+            <div class="btn-group cal-toggle" role="group">
+                @foreach (var r in Enum.GetValues<CalendarRange>())
+                {
+                    <a asp-action="Calendar" asp-route-range="@r" asp-route-date="@FmtDate(Model.AnchorDate)"
+                       class="btn btn-sm @(Model.Range == r ? "btn-primary" : "btn-outline-secondary") px-3">@r</a>
+                }
+            </div>
+
+            <!-- Date Navigation Pager -->
+            <div class="d-flex align-items-center gap-3">
+                @{
+                    DateTime prevDate = Model.Range switch
+                    {
+                        CalendarRange.Day => Model.AnchorDate.AddDays(-1),
+                        CalendarRange.Week => Model.AnchorDate.AddDays(-7),
+                        CalendarRange.Month => Model.AnchorDate.AddMonths(-1),
+                        _ => Model.AnchorDate.AddYears(-1)
+                    };
+                    DateTime nextDate = Model.Range switch
+                    {
+                        CalendarRange.Day => Model.AnchorDate.AddDays(1),
+                        CalendarRange.Week => Model.AnchorDate.AddDays(7),
+                        CalendarRange.Month => Model.AnchorDate.AddMonths(1),
+                        _ => Model.AnchorDate.AddYears(1)
+                    };
+                }
+                
+                <a asp-action="Calendar" asp-route-range="@Model.Range" asp-route-date="@FmtDate(prevDate)" class="btn btn-outline-secondary btn-sm px-2">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+                
+                <span class="cal-range-label px-3 py-1 bg-light border rounded-pill fw-bold text-dark" style="font-size: 13.5px;">
+                    <i class="bi bi-calendar3 text-muted me-1"></i>
+                    @if (Model.Range == CalendarRange.Day)
+                    {
+                        @Model.RangeStart.ToString("MMMM dd, yyyy")
+                    }
+                    else if (Model.Range == CalendarRange.Month)
+                    {
+                        @Model.RangeStart.ToString("MMMM yyyy")
+                    }
+                    else if (Model.Range == CalendarRange.Year)
+                    {
+                        @Model.RangeStart.ToString("yyyy")
+                    }
+                    else
+                    {
+                        <span>@Model.RangeStart.ToString("MMM dd") &ndash; @Model.RangeEnd.ToString("MMM dd, yyyy")</span>
+                    }
+                </span>
+                
+                <a asp-action="Calendar" asp-route-range="@Model.Range" asp-route-date="@FmtDate(nextDate)" class="btn btn-outline-secondary btn-sm px-2">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+    </div>
+
+    <!-- CALENDAR GRID DISPLAYS -->
+    @if (Model.Range == CalendarRange.Day)
+    {
+        <!-- Day View -->
+        <div class="dashboard-section-card">
+            <div class="card-header-section">
+                <h5><i class="bi bi-clock-history"></i> Schedule for @Model.RangeStart.ToString("dddd, MMMM dd")</h5>
+            </div>
+            <div class="card-body-section">
+            @if (!Model.Tasks.Any())
+            {
+                <div class="empty-state" style="padding:40px 20px;">
+                    <div class="empty-state-icon" style="width:56px;height:56px;font-size:26px;">
+                        <i class="bi bi-calendar-check"></i>
+                    </div>
+                    <h4 style="font-size:16px;">No tasks due</h4>
+                    <p>Nothing scheduled for this day.</p>
+                </div>
+            }
+            else
+            {
+                <div class="task-list">
+                    @foreach (var task in Model.Tasks)
+                    {
+                        <div class="task-list-row task-row @task.Priority @(task.IsCompleted ? "completed" : "") align-items-center py-3 px-4">
+                            <span class="priority-dot @task.Priority"></span>
+                            <div class="flex-grow-1 min-w-0 ms-2">
+                                <a asp-action="Details" asp-route-id="@task.Id" class="task-title text-white fw-bold text-decoration-none fs-6">@task.Title</a>
+                                @if (task.HashtagList.Any())
+                                {
+                                    <div class="mt-1 d-flex gap-1 flex-wrap">
+                                        @foreach (var tag in task.HashtagList)
+                                        {
+                                            <span class="hashtag-pill" style="font-size: 10px; padding: 2px 8px;">#@tag</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                            <div class="task-meta me-3">
+                                <span class="priority-pill @task.Priority">@task.Priority</span>
+                            </div>
+                            <div class="btn-group">
+                                <a asp-action="Edit" asp-route-id="@task.Id" class="btn btn-sm btn-outline-secondary p-2"><i class="bi bi-pencil"></i></a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            </div>
+        </div>
+    }
+    else if (Model.Range == CalendarRange.Week)
+    {
+        <!-- Week View: 7-Column Board Grid -->
+        <div class="calendar-grid-week">
+            @for (int i = 0; i < 7; i++)
+            {
+                var day = Model.RangeStart.AddDays(i);
+                var dayTasks = Model.Tasks.Where(t => t.EndDate.HasValue && t.EndDate.Value.Date == day.Date).ToList();
+                bool isToday = day.Date == today;
+                
+                <div class="calendar-day-col @(isToday ? "today-col" : "")">
+                    <div class="calendar-day-header text-center mb-3">
+                        <span class="day-name d-block text-muted small fw-bold text-uppercase">@day.ToString("ddd")</span>
+                        <span class="day-number @(isToday ? "today-badge" : "")">@day.Day</span>
+                    </div>
+                    
+                    <div class="calendar-day-tasks flex-grow-1 d-flex flex-column gap-2">
+                        @if (dayTasks.Any())
+                        {
+                            @foreach (var task in dayTasks)
+                            {
+                                <a asp-action="Details" asp-route-id="@task.Id" 
+                                   class="calendar-mini-card @task.Priority @(task.IsCompleted ? "completed" : "")" 
+                                   title="@task.Title">
+                                    <div class="d-flex align-items-center gap-1 mb-1">
+                                        <span class="priority-dot @task.Priority" style="width: 10px; height: 10px;"></span>
+                                        <span class="mini-card-title text-dark fw-semibold text-truncate">@task.Title</span>
+                                    </div>
+                                    @if (task.HashtagList.Any())
+                                    {
+                                        <span class="mini-card-tag text-primary ms-1">#@task.HashtagList.First()</span>
+                                    }
+                                </a>
+                            }
+                        }
+                        else
+                        {
+                            <div class="calendar-empty-day-cue my-auto text-center text-muted small py-3">
+                                <i class="bi bi-circle small opacity-20"></i>
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (Model.Range == CalendarRange.Month)
+    {
+        <!-- Month View -->
+        <div class="dashboard-section-card">
+            <div class="card-body-section">
+            <!-- Weekday Headers -->
+            <div class="calendar-month-grid-header mb-2">
+                <span class="text-center text-muted small fw-bold">Mon</span>
+                <span class="text-center text-muted small fw-bold">Tue</span>
+                <span class="text-center text-muted small fw-bold">Wed</span>
+                <span class="text-center text-muted small fw-bold">Thu</span>
+                <span class="text-center text-muted small fw-bold">Fri</span>
+                <span class="text-center text-muted small fw-bold text-danger">Sat</span>
+                <span class="text-center text-muted small fw-bold text-danger">Sun</span>
+            </div>
+
+            <!-- Days Matrix -->
+            <div class="calendar-grid-month">
+                @{
+                    var monthStart = Model.RangeStart;
+                    int offset = (7 + (int)monthStart.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+                    var gridStart = monthStart.AddDays(-offset);
+                    
+                    var gridEnd = Model.RangeEnd;
+                    int endOffset = (7 - (int)gridEnd.DayOfWeek + (int)DayOfWeek.Sunday) % 7;
+                    var totalGridDays = (gridEnd.AddDays(endOffset) - gridStart).Days + 1;
+                }
+
+                @for (int d = 0; d < totalGridDays; d++)
+                {
+                    var day = gridStart.AddDays(d);
+                    var dayTasks = Model.Tasks.Where(t => t.EndDate.HasValue && t.EndDate.Value.Date == day.Date).ToList();
+                    bool inActiveMonth = day.Month == Model.AnchorDate.Month;
+                    bool isToday = day.Date == today;
+                    
+                    <div class="calendar-month-cell @(inActiveMonth ? "active-month" : "inactive-month") @(isToday ? "today-cell" : "")">
+                        <span class="calendar-month-cell-daynum @(isToday ? "today-num-badge" : "")">@day.Day</span>
+                        
+                        <div class="calendar-month-cell-tasks">
+                            @foreach (var task in dayTasks.Take(3))
+                            {
+                                <a asp-action="Details" asp-route-id="@task.Id" 
+                                   class="calendar-month-task-pill @task.Priority @(task.IsCompleted ? "completed" : "") text-truncate d-block" 
+                                   title="@task.Title">
+                                    @task.Title
+                                </a>
+                            }
+                            @if (dayTasks.Count > 3)
+                            {
+                                <span class="calendar-month-more-indicator small text-muted font-monospace">+@(dayTasks.Count - 3) more</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Year View: Months List Grouped -->
+        <div class="row g-3">
+            @for (int m = 1; m <= 12; m++)
+            {
+                var monthTasks = Model.Tasks.Where(t => t.EndDate.HasValue && t.EndDate.Value.Month == m).ToList();
+                var monthDate = new DateTime(Model.AnchorDate.Year, m, 1);
+                
+                <div class="col-12 col-md-6 col-lg-4 col-xl-3">
+                    <div class="dashboard-section-card h-100">
+                        <div class="card-header-section" style="padding:14px 16px;">
+                            <h5 style="font-size:14px;">@monthDate.ToString("MMMM")</h5>
+                            <span class="col-count">@monthTasks.Count</span>
+                        </div>
+                        <div class="card-body-section" style="padding:12px 16px;">
+                            @if (monthTasks.Any())
+                            {
+                                <div class="d-flex flex-column gap-1">
+                                    @foreach (var task in monthTasks.Take(4))
+                                    {
+                                        <a asp-action="Details" asp-route-id="@task.Id" class="upcoming-item" style="padding:8px 12px;margin-bottom:6px;">
+                                            <span class="priority-dot @task.Priority"></span>
+                                            <span class="upcoming-title">@task.Title</span>
+                                        </a>
+                                    }
+                                    @if (monthTasks.Count > 4)
+                                    {
+                                        <small class="text-muted italic">+@(monthTasks.Count - 4) more due</small>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <small class="text-muted italic my-auto d-block py-2">No tasks due</small>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
