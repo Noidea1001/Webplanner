@@ -82,7 +82,7 @@ public class TasksController : Controller
             Title = vm.Title,
             Description = vm.Description,
             Priority = vm.Priority,
-            EndDate = vm.EndDate,
+            EndDate = vm.EndDate?.ToUniversalTime(),
             Hashtags = vm.Hashtags,
             IsCompleted = vm.IsCompleted,
             ParentTaskId = vm.ParentTaskId,

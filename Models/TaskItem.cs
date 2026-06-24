@@ -24,25 +24,23 @@ public class TaskItem
 
     public DateTime? EndDate { get; set; }
 
-    /// <summary>Comma-separated hashtags, e.g. "#work,#urgent"</summary>
     [StringLength(500)]
     public string? Hashtags { get; set; }
 
     public bool IsCompleted { get; set; } = false;
 
+    // IMPORTANT: Force UTC
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Owner
     [Required]
     public string UserId { get; set; } = string.Empty;
     public ApplicationUser? User { get; set; }
 
-    // Self-referencing relationship for subtasks
     public int? ParentTaskId { get; set; }
     [ForeignKey(nameof(ParentTaskId))]
     public TaskItem? ParentTask { get; set; }
-    public List<TaskItem> SubTasks { get; set; } = new();
 
+    public List<TaskItem> SubTasks { get; set; } = new();
     public List<TaskComment> Comments { get; set; } = new();
     public List<TaskAttachment> Attachments { get; set; } = new();
 

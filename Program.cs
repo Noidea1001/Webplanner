@@ -40,6 +40,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
         Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
+
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", false);
+
 // ==================== IDENTITY + DATA PROTECTION ====================
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
