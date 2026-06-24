@@ -66,14 +66,7 @@ namespace WebPlanner.Migrations
                 oldMaxLength: 500,
                 oldNullable: true);
 
-            migrationBuilder.AlterColumn<DateTime>(
-                name: "EndDate",
-                table: "Tasks",
-                type: "timestamp with time zone",
-                nullable: true,
-                oldClrType: typeof(string),
-                oldType: "TEXT",
-                oldNullable: true);
+            migrationBuilder.Sql("ALTER TABLE \"Tasks\" ALTER COLUMN \"EndDate\" TYPE timestamp with time zone USING \"EndDate\"::timestamp with time zone;");
 
             migrationBuilder.AlterColumn<string>(
                 name: "Description",
@@ -86,13 +79,7 @@ namespace WebPlanner.Migrations
                 oldMaxLength: 4000,
                 oldNullable: true);
 
-            migrationBuilder.AlterColumn<DateTime>(
-                name: "CreatedAt",
-                table: "Tasks",
-                type: "timestamp with time zone",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "TEXT");
+            migrationBuilder.Sql("ALTER TABLE \"Tasks\" ALTER COLUMN \"CreatedAt\" TYPE timestamp with time zone USING \"CreatedAt\"::timestamp with time zone;");
 
             migrationBuilder.AlterColumn<int>(
                 name: "Id",
@@ -148,13 +135,7 @@ namespace WebPlanner.Migrations
                 oldClrType: typeof(int),
                 oldType: "INTEGER");
 
-            migrationBuilder.AlterColumn<DateTime>(
-                name: "CreatedAt",
-                table: "Comments",
-                type: "timestamp with time zone",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "TEXT");
+            migrationBuilder.Sql("ALTER TABLE \"Comments\" ALTER COLUMN \"CreatedAt\" TYPE timestamp with time zone USING \"CreatedAt\"::timestamp with time zone;");
 
             migrationBuilder.AlterColumn<string>(
                 name: "AuthorUserId",
@@ -173,13 +154,7 @@ namespace WebPlanner.Migrations
                 oldType: "INTEGER")
                 .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn);
 
-            migrationBuilder.AlterColumn<DateTime>(
-                name: "UploadedAt",
-                table: "Attachments",
-                type: "timestamp with time zone",
-                nullable: false,
-                oldClrType: typeof(string),
-                oldType: "TEXT");
+            migrationBuilder.Sql("ALTER TABLE \"Attachments\" ALTER COLUMN \"UploadedAt\" TYPE timestamp with time zone USING \"UploadedAt\"::timestamp with time zone;");
 
             migrationBuilder.AlterColumn<int>(
                 name: "TaskItemId",
