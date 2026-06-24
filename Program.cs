@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using WebPlanner.Data;
 using WebPlanner.Models;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
 
 // ==================== RENDER + PRODUCTION FIXES ====================
