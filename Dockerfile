@@ -2,11 +2,11 @@
 FROM ://microsoft.com AS build-env
 WORKDIR /app
 
-# ចម្លងឯកសារ .csproj រួច Restore dependencies
+# ផ្ទេរឯកសារ .csproj រួច Restore dependencies
 COPY *.csproj ./
 RUN dotnet restore
 
-# ចម្លងកូដទាំងអស់ រួច Publish កម្មវិធី
+# ផ្ទេរកូដទាំងអស់ រួច Publish កម្មវិធី
 COPY . ./
 RUN dotnet publish -c Release -o out
 
@@ -15,7 +15,7 @@ FROM ://microsoft.com
 WORKDIR /app
 COPY --from=build-env /app/out .
 
-# set  Production mode on Render
+# កំណត់ឱ្យកម្មវិធីដើរក្នុង Production mode ជានិច្ចលើ Render
 ENV ASPNETCORE_ENVIRONMENT=Production
 
 ENTRYPOINT ["dotnet", "WebPlanner.dll"]
