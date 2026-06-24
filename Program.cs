@@ -51,18 +51,19 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 // ==================== MVC SERVICES ====================
 builder.Services.AddControllersWithViews();
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
-// ==================== DB SETUP + ADMIN CREATION ====================
+
+// ==================== DB SETUP ====================
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var env = app.Environment;
 
-    if (env.IsDevelopment())
+    if (app.Environment.IsDevelopment())
     {
         db.Database.EnsureCreated();
     }
@@ -71,69 +72,9 @@ using (var scope = app.Services.CreateScope())
         db.Database.Migrate();
     }
 
-    // === Create Admin Role ===
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     if (!await roleManager.RoleExistsAsync("Admin"))
-    {
         await roleManager.CreateAsync(new IdentityRole("Admin"));
-        Console.WriteLine("✅ Admin role created");
-    }
-
-    // === Create Admin User from Environment Variables ===
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-
-    string? adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") 
-                      ?? builder.Configuration["AdminEmail"];
-
-    string? adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") 
-                         ?? builder.Configuration["AdminPassword"];
-
-    if (!string.IsNullOrEmpty(adminEmail) && !string.IsNullOrEmpty(adminPassword))
-    {
-        var existingAdmin = await userManager.FindByEmailAsync(adminEmail);
-        
-        if (existingAdmin == null)
-        {
-            var adminUser = new ApplicationUser
-            {
-                UserName = adminEmail,
-                Email = adminEmail,
-                EmailConfirmed = true,
-            };
-
-            var result = await userManager.CreateAsync(adminUser, adminPassword);
-
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(adminUser, "Admin");
-                Console.WriteLine($"✅ Admin account created successfully: {adminEmail}");
-            }
-            else
-            {
-                Console.WriteLine($"❌ Failed to create admin: {string.Join(", ", result.Errors.Select(e => e.Description))}");
-            }
-        }
-        else
-        {
-            Console.WriteLine($"ℹ️ Admin account already exists: {adminEmail}");
-        }
-    }
-    else
-    {
-        Console.WriteLine("⚠️ ADMIN_EMAIL or ADMIN_PASSWORD not set. Skipping admin creation.");
-    }
-}
-
-// ==================== MIDDLEWARE ====================
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-else
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
 }
 
 app.UseHttpsRedirection();
