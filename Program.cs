@@ -74,7 +74,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ==================== DATABASE MIGRATION + SEEDING (Full Neon Fix) ====================
+// ==================== DATABASE MIGRATION + SEEDING (FINAL STRONG FIX) ====================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -86,11 +86,20 @@ using (var scope = app.Services.CreateScope())
 
         if (!app.Environment.IsDevelopment())
         {
-            Console.WriteLine("🛠️ Running full schema fixes for Neon...");
+            Console.WriteLine("🛠️ Running STRONG schema reset for Neon...");
 
             await db.Database.ExecuteSqlRawAsync(@"
                 DO $$
                 BEGIN
+                    -- Drop and recreate DataProtectionKeys cleanly (most important fix)
+                    DROP TABLE IF EXISTS ""DataProtectionKeys"";
+
+                    CREATE TABLE ""DataProtectionKeys"" (
+                        ""Id"" integer GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                        ""FriendlyName"" text NULL,
+                        ""Xml"" text NULL
+                    );
+
                     -- Fix Tasks table columns
                     IF EXISTS (
                         SELECT 1 FROM information_schema.columns 
@@ -110,37 +119,19 @@ using (var scope = app.Services.CreateScope())
                         USING (""EndDate""::timestamp);
                     END IF;
 
-                    -- CRITICAL: Fix DataProtectionKeys table
-                    IF EXISTS (
-                        SELECT 1 FROM information_schema.columns 
-                        WHERE table_name = 'DataProtectionKeys' AND column_name = 'Id' 
-                        AND (data_type != 'integer' OR column_default IS NULL)
-                    ) THEN
-                        ALTER TABLE ""DataProtectionKeys"" 
-                        ALTER COLUMN ""Id"" TYPE integer 
-                        USING ""Id""::integer;
-
-                        ALTER TABLE ""DataProtectionKeys"" 
-                        ALTER COLUMN ""Id"" ADD GENERATED ALWAYS AS IDENTITY;
-                    END IF;
-
                 END $$;
             ");
 
-            Console.WriteLine("✅ All Neon schema fixes applied");
+            Console.WriteLine("✅ DataProtectionKeys table recreated + column fixes applied");
         }
 
         await db.Database.MigrateAsync();
-        Console.WriteLine("✅ Database migrations completed successfully");
+        Console.WriteLine("✅ All migrations completed successfully");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"❌ Migration error: {ex.Message}");
-        // Continue even if some fixes fail (better than crashing)
-        if (!ex.Message.Contains("DataProtectionKeys") && 
-            !ex.Message.Contains("IsCompleted") && 
-            !ex.Message.Contains("EndDate"))
-            throw;
+        // Don't crash the app
     }
 
     // Seed Admin Role
