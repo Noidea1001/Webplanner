@@ -15,7 +15,9 @@ public class AccountController : Controller
         _userManager = userManager;
     }
 
-    [HttpGet]
+    // [HttpGet]
+    [AcceptVerbs("GET", "HEAD")]
+
     public IActionResult Login(string? returnUrl = null)
     {
         ViewData["ReturnUrl"] = returnUrl;

@@ -4,7 +4,7 @@ namespace WebPlanner.Controllers;
 
 public class HomeController : Controller
 {
-    [HttpGet] 
+    [AcceptVerbs("GET", "HEAD")] 
     [Route("/Home/Error")]
     public IActionResult Error()
     {
