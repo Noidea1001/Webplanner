@@ -2,11 +2,11 @@
 FROM ://microsoft.com AS build-env
 WORKDIR /app
 
-# ផ្ទេរឯកសារ .csproj រួច Restore dependencies
+# ចម្លងឯកសារ .csproj រួច Restore dependencies
 COPY *.csproj ./
 RUN dotnet restore
 
-# ផ្ទេរកូដទាំងអស់ រួច Publish កម្មវិធី
+# ចម្លងកូដទាំងអស់ រួច Publish កម្មវិធី
 COPY . ./
 RUN dotnet publish -c Release -o out
 
