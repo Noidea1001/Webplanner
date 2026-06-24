@@ -19,81 +19,81 @@ build_property.TargetFrameworkIdentifier = .NETCoreApp
 build_property.TargetFrameworkVersion = v10.0
 build_property.RootNamespace = WebPlanner
 build_property.RootNamespace = WebPlanner
-build_property.ProjectDir = c:\Users\Aex\Downloads\Telegram Desktop\WebPlanner improve\WebPlanner\
+build_property.ProjectDir = D:\M17 ASP-NET\WebPlanner\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 9.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = c:\Users\Aex\Downloads\Telegram Desktop\WebPlanner improve\WebPlanner
+build_property.MSBuildProjectDirectory = D:\M17 ASP-NET\WebPlanner
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Account/Login.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Account/Login.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxMb2dpbi5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Account/Register.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Account/Register.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxSZWdpc3Rlci5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Shared/Error.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Shared/_Layout.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/Board.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/Board.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcQm9hcmQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/Calendar.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/Calendar.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcQ2FsZW5kYXIuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/Create.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/Create.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcQ3JlYXRlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/Dashboard.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/Dashboard.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcRGFzaGJvYXJkLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/Delete.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/Delete.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcRGVsZXRlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/Details.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/Details.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcRGV0YWlscy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/Edit.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/Edit.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcRWRpdC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/Index.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/Search.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/Search.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcU2VhcmNoLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/_TaskCard.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/_TaskCard.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcX1Rhc2tDYXJkLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/Tasks/_TaskFormFields.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/Tasks/_TaskFormFields.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcVGFza3NcX1Rhc2tGb3JtRmllbGRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/_ViewImports.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[c:/Users/Aex/Downloads/Telegram Desktop/WebPlanner improve/WebPlanner/Views/_ViewStart.cshtml]
+[D:/M17 ASP-NET/WebPlanner/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
