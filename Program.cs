@@ -110,7 +110,7 @@ using (var scope = app.Services.CreateScope())
     // Seed Admin Role
     try
     {
-        var roleManager = services.GetRequiredService();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         if (!await roleManager.RoleExistsAsync("Admin"))
         {
             await roleManager.CreateAsync(new IdentityRole("Admin"));
