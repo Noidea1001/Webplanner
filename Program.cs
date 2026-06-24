@@ -74,7 +74,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ==================== DATABASE MIGRATION + SEEDING (Neon Fix) ====================
+// ==================== DATABASE MIGRATION + SEEDING (Full Neon Fix) ====================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -86,51 +86,61 @@ using (var scope = app.Services.CreateScope())
 
         if (!app.Environment.IsDevelopment())
         {
-            Console.WriteLine("🛠️  Running PostgreSQL compatibility fixes for Neon...");
+            Console.WriteLine("🛠️ Running full schema fixes for Neon...");
 
             await db.Database.ExecuteSqlRawAsync(@"
                 DO $$
                 BEGIN
-                    -- Fix IsCompleted column
+                    -- Fix Tasks table columns
                     IF EXISTS (
                         SELECT 1 FROM information_schema.columns 
                         WHERE table_name = 'Tasks' AND column_name = 'IsCompleted' 
                         AND data_type != 'boolean'
                     ) THEN
-                        ALTER TABLE ""Tasks"" 
-                        ALTER COLUMN ""IsCompleted"" TYPE boolean 
+                        ALTER TABLE ""Tasks"" ALTER COLUMN ""IsCompleted"" TYPE boolean 
                         USING (""IsCompleted""::text::boolean);
-                        RAISE NOTICE 'Fixed IsCompleted column';
                     END IF;
 
-                    -- Fix EndDate column
                     IF EXISTS (
                         SELECT 1 FROM information_schema.columns 
                         WHERE table_name = 'Tasks' AND column_name = 'EndDate' 
                         AND data_type != 'timestamp with time zone'
                     ) THEN
-                        ALTER TABLE ""Tasks"" 
-                        ALTER COLUMN ""EndDate"" TYPE timestamp with time zone 
-                        USING ""EndDate""::timestamp with time zone;
-                        RAISE NOTICE 'Fixed EndDate column';
+                        ALTER TABLE ""Tasks"" ALTER COLUMN ""EndDate"" TYPE timestamp with time zone 
+                        USING (""EndDate""::timestamp);
+                    END IF;
+
+                    -- CRITICAL: Fix DataProtectionKeys table
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.columns 
+                        WHERE table_name = 'DataProtectionKeys' AND column_name = 'Id' 
+                        AND (data_type != 'integer' OR column_default IS NULL)
+                    ) THEN
+                        ALTER TABLE ""DataProtectionKeys"" 
+                        ALTER COLUMN ""Id"" TYPE integer 
+                        USING ""Id""::integer;
+
+                        ALTER TABLE ""DataProtectionKeys"" 
+                        ALTER COLUMN ""Id"" ADD GENERATED ALWAYS AS IDENTITY;
                     END IF;
 
                 END $$;
             ");
 
-            Console.WriteLine("✅ Neon column type fixes applied");
+            Console.WriteLine("✅ All Neon schema fixes applied");
         }
 
         await db.Database.MigrateAsync();
-        Console.WriteLine("✅ All migrations completed successfully");
+        Console.WriteLine("✅ Database migrations completed successfully");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"❌ Migration error: {ex.Message}");
-        if (!ex.Message.Contains("IsCompleted") && !ex.Message.Contains("EndDate"))
+        // Continue even if some fixes fail (better than crashing)
+        if (!ex.Message.Contains("DataProtectionKeys") && 
+            !ex.Message.Contains("IsCompleted") && 
+            !ex.Message.Contains("EndDate"))
             throw;
-        else
-            Console.WriteLine("⚠️ Continuing after column fix...");
     }
 
     // Seed Admin Role
