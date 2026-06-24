@@ -18,13 +18,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     if (builder.Environment.IsDevelopment())
     {
         options.UseSqlite(connectionString ?? "Data Source=webplanner.db");
+        Console.WriteLine("✅ Using SQLite (Development)");
     }
     else
     {
         if (string.IsNullOrEmpty(connectionString))
-            throw new InvalidOperationException("Missing PostgreSQL connection string!");
-
+        {
+            Console.WriteLine("❌ ERROR: No PostgreSQL connection string found!");
+            throw new InvalidOperationException("Missing PostgreSQL connection string on Render!");
+        }
         options.UseNpgsql(connectionString);
+        Console.WriteLine("✅ Using PostgreSQL (Production)");
     }
 
     options.ConfigureWarnings(w => w.Ignore(
@@ -49,32 +53,66 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/Login";
 });
 
-// ==================== MVC SERVICES ====================
+// ==================== MVC ====================
 builder.Services.AddControllersWithViews();
-
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ==================== DB SETUP ====================
+// ==================== DB SETUP + ERROR HANDLING ====================
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-    if (app.Environment.IsDevelopment())
+    try
     {
-        db.Database.EnsureCreated();
+        if (app.Environment.IsDevelopment())
+        {
+            db.Database.EnsureCreated();
+            Console.WriteLine("✅ SQLite database ready");
+        }
+        else
+        {
+            Console.WriteLine("🔄 Applying PostgreSQL migrations...");
+            db.Database.Migrate();
+            Console.WriteLine("✅ PostgreSQL migrations completed successfully");
+        }
     }
-    else
+    catch (Exception ex)
     {
-        db.Database.Migrate();
+        Console.WriteLine($"❌ Database Error: {ex.Message}");
+        Console.WriteLine($"Stack Trace: {ex.StackTrace}");
+        throw;
     }
 
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    if (!await roleManager.RoleExistsAsync("Admin"))
-        await roleManager.CreateAsync(new IdentityRole("Admin"));
+    // Create Admin Role
+    try
+    {
+        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        if (!await roleManager.RoleExistsAsync("Admin"))
+        {
+            await roleManager.CreateAsync(new IdentityRole("Admin"));
+            Console.WriteLine("✅ Admin role created");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Role creation warning: {ex.Message}");
+    }
+}
+
+Console.WriteLine("🚀 Application startup completed successfully");
+
+// ==================== MIDDLEWARE ====================
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
 }
 
 app.UseHttpsRedirection();
