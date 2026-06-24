@@ -74,7 +74,7 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// ==================== DATABASE MIGRATION + SEEDING ====================
+// ==================== DATABASE MIGRATION + SEEDING (Neon Fix) ====================
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -82,13 +82,13 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
-        Console.WriteLine("🔄 Applying database migrations...");
+        Console.WriteLine("🔄 Applying migrations for Neon PostgreSQL...");
 
+        // Special fix for Neon / PostgreSQL type casting issue
         if (!app.Environment.IsDevelopment())
         {
-            Console.WriteLine("🛠️  Running PostgreSQL compatibility fixes...");
+            Console.WriteLine("🛠️ Applying IsCompleted column fix for Neon...");
 
-            // Fix IsCompleted column type safely
             await db.Database.ExecuteSqlRawAsync(@"
                 DO $$
                 BEGIN
@@ -100,27 +100,29 @@ using (var scope = app.Services.CreateScope())
                     ) THEN
                         ALTER TABLE ""Tasks"" 
                         ALTER COLUMN ""IsCompleted"" TYPE boolean 
-                        USING (CASE 
-                            WHEN ""IsCompleted""::text IN ('1', 'true', 'yes') THEN true 
-                            ELSE false 
-                        END);
-                        RAISE NOTICE 'Fixed IsCompleted column type';
+                        USING (""IsCompleted""::text::boolean);
+                        
+                        RAISE NOTICE '✅ IsCompleted column converted to boolean';
                     END IF;
                 END $$;
             ");
-
-            Console.WriteLine("✅ PostgreSQL column type fix applied");
+            
+            Console.WriteLine("✅ IsCompleted column fix completed");
         }
 
+        // Run normal migrations
         await db.Database.MigrateAsync();
-        Console.WriteLine("✅ All migrations completed successfully");
+        Console.WriteLine("✅ All migrations applied successfully on Neon");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"❌ Migration error: {ex.Message}");
-        // Don't throw in production if it's a non-critical column fix
+        Console.WriteLine($"❌ Migration failed: {ex.Message}");
+        
+        // Only rethrow if it's not the column we just tried to fix
         if (!ex.Message.Contains("IsCompleted"))
             throw;
+        else
+            Console.WriteLine("⚠️ Continuing despite column fix warning...");
     }
 
     // Seed Admin Role
@@ -130,7 +132,7 @@ using (var scope = app.Services.CreateScope())
         if (!await roleManager.RoleExistsAsync("Admin"))
         {
             await roleManager.CreateAsync(new IdentityRole("Admin"));
-            Console.WriteLine("✅ Admin role created");
+            Console.WriteLine("✅ Admin role seeded");
         }
     }
     catch (Exception ex)
