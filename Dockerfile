@@ -1,26 +1,29 @@
 # =============================================
-# Build Stage (.NET 10 SDK)
+# Build Stage
 # =============================================
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build-env
 WORKDIR /app
 
-# Copy csproj and restore dependencies
+# Clean any lingering artifacts (extra safety)
+RUN find . -type d -name "bin" -prune -exec rm -rf {} \; && \
+    find . -type d -name "obj" -prune -exec rm -rf {} \;
+
+# Copy csproj and restore (this layer is cached)
 COPY *.csproj ./
 RUN dotnet restore
 
-# Copy the rest of the code and publish
+# Copy source code and publish
 COPY . ./
 RUN dotnet publish -c Release -o out --no-restore
 
 # =============================================
-# Runtime Stage (.NET 10 ASP.NET)
+# Runtime Stage
 # =============================================
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 
 COPY --from=build-env /app/out .
 
-# Settings for Render.com
 ENV ASPNETCORE_ENVIRONMENT=Production
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080

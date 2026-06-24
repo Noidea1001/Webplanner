@@ -1,0 +1,12 @@
+# Exclude build artifacts
+**/bin/
+**/obj/
+**/out/
+
+# Other unnecessary files
+.git
+.gitignore
+README.md
+*.md
+Dockerfile*
+.dockerignore
