@@ -5,49 +5,41 @@ using WebPlanner.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// === STRONG ENVIRONMENT FIX ===
-string environment = builder.Configuration["ASPNETCORE_ENVIRONMENT"] 
-                  ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
-                  ?? (builder.Environment.IsDevelopment() ? "Development" : "Production");
+// ==================== RENDER / PRODUCTION FIXES ====================
+builder.WebHost.UseUrls("http://0.0.0.0:8080");
 
-if (environment == "Development" || 
-    Environment.CommandLine.Contains("Development"))
+if (string.IsNullOrEmpty(builder.Environment.EnvironmentName) || 
+    builder.Environment.EnvironmentName == "Production")
 {
-    builder.Environment.EnvironmentName = "Development";
+    builder.Environment.EnvironmentName = "Production";
 }
 
-var env = builder.Environment;
+Console.WriteLine($"🚀 Running in: {builder.Environment.EnvironmentName} mode");
 
-Console.WriteLine($"🚀 Running in: {env.EnvironmentName} mode");
-
-// === Database Configuration ===
+// ==================== DATABASE ====================
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
-    if (env.IsDevelopment())
+    if (builder.Environment.IsDevelopment())
     {
         options.UseSqlite(connectionString ?? "Data Source=webplanner.db");
-        Console.WriteLine("✅ Using SQLite (Development)");
     }
     else
     {
         if (string.IsNullOrEmpty(connectionString))
-        {
-            throw new InvalidOperationException("❌ Missing PostgreSQL connection string in Production!");
-        }
+            throw new InvalidOperationException("Missing PostgreSQL connection string on Render!");
+
         options.UseNpgsql(connectionString);
-        Console.WriteLine("✅ Using PostgreSQL (Production)");
     }
 
-    // === បិទការការពារ និងបង្ខំឱ្យរត់ចាក់ Table ===
-    options.ConfigureWarnings(warnings => warnings.Ignore(
-        Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning
-    ));
+    options.ConfigureWarnings(w => w.Ignore(
+        Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
 });
 
-// === Identity ===
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
+// ==================== IDENTITY ====================
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{
     options.Password.RequireDigit = false;
     options.Password.RequireUppercase = false;
     options.Password.RequireNonAlphanumeric = false;
@@ -57,80 +49,45 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-builder.Services.ConfigureApplicationCookie(options => {
+builder.Services.ConfigureApplicationCookie(options =>
+{
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/Login";
 });
 
+// ==================== MVC SERVICES ====================
+var mvcBuilder = builder.Services.AddControllersWithViews();
 
-// Services
-builder.Services.AddControllersWithViews();
+// Only enable runtime compilation in Development (prevents inotify error)
+if (builder.Environment.IsDevelopment())
+{
+    mvcBuilder.AddRazorRuntimeCompilation();
+}
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// === Database Setup ===
+// ==================== DB MIGRATION & SEED ====================
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    
-    if (env.IsDevelopment())
+
+    if (app.Environment.IsDevelopment())
     {
         db.Database.EnsureCreated();
-        Console.WriteLine("📦 SQLite database ready");
     }
     else
     {
         db.Database.Migrate();
-        Console.WriteLine("📦 PostgreSQL migrations applied");
     }
 
+    // Seed Admin Role
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>(); 
-
-    if (!roleManager.RoleExistsAsync("Admin").Result)
-    {
-        roleManager.CreateAsync(new IdentityRole("Admin")).Wait();
-    }
-
-    string adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL") ?? "";
-    string adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? "";
-
-    if (!string.IsNullOrEmpty(adminEmail) && !string.IsNullOrEmpty(adminPassword))
-    {
-        var adminUser = userManager.FindByEmailAsync(adminEmail).Result;
-        if (adminUser == null)
-        {
-            var newAdmin = new ApplicationUser 
-            {
-                UserName = adminEmail,
-                Email = adminEmail,
-                EmailConfirmed = true
-            };
-
-            var createResult = userManager.CreateAsync(newAdmin, adminPassword).Result;
-            if (createResult.Succeeded)
-            {
-                userManager.AddToRoleAsync(newAdmin, "Admin").Wait();
-                Console.WriteLine($" Admin account '{adminEmail}' created successfully!");
-            }
-        }
-    }
-}
-
-
-// Middleware
-if (env.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-else
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    if (!await roleManager.RoleExistsAsync("Admin"))
+        await roleManager.CreateAsync(new IdentityRole("Admin"));
 }
 
 app.UseHttpsRedirection();
@@ -144,8 +101,5 @@ app.MapControllerRoute(
     pattern: "{controller=Tasks}/{action=Index}/{id?}");
 
 app.MapControllers();
-
-var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
-app.Urls.Add($"http://*:{port}");
 
 app.Run();
